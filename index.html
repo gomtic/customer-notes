@@ -38,6 +38,8 @@
   --font-body: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', system-ui, sans-serif;
   --font-num: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   --cols: minmax(100px, 1fr) minmax(140px, 1.1fr) 120px minmax(200px, 3fr) 150px 58px;
+  --cols-c: minmax(100px, 1fr) minmax(140px, 1.1fr) minmax(180px, 2.4fr) minmax(150px, 1.2fr) 58px;
+  --cols-d: 150px 120px minmax(200px, 1fr) 58px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -141,9 +143,63 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
   font-weight: 600;
 }
 .heads span { padding-left: 9px; }
-.heads2 { display: none; }
-body.v-date header .heads { display: none; }
-body.v-date .heads2 { display: grid; margin-top: 0; }
+.heads.hc { grid-template-columns: var(--cols-c); }
+.heads2, .heads3 { margin-top: 0; }
+.heads3 { grid-template-columns: var(--cols-d); }
+
+/* customer rows (고객 정보 목록) */
+.row.crow { grid-template-columns: var(--cols-c); }
+.sum-btn { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); text-align: left; font-size: 13px; }
+.sum-btn:hover { border-color: var(--accent); }
+.sum-1 { font-weight: 600; }
+.sum-1.late { color: var(--danger); }
+.sum-1.today { color: var(--accent); }
+.sum-1.none { color: var(--muted); font-weight: 400; }
+.sum-2 { color: var(--muted); font-size: 12px; }
+.sum-3 { color: var(--accent); font-size: 12px; font-weight: 600; }
+/* visit rows (날짜별) */
+.who { display: flex; align-items: center; gap: 4px; width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--fg); font-weight: 600; text-align: left; }
+.who:hover { border-color: var(--line); }
+.who-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.who-a { flex: none; color: var(--accent); }
+.ph { min-width: 0; padding: 6px 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* customer page (고객 정보 상세) */
+.detail { margin-top: 8px; }
+.dt-top { margin-bottom: 10px; }
+.dt-card { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.2fr); gap: 10px 16px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.dt-l.wide { grid-column: 1 / -1; }
+.cap2 { display: block; margin: 0 0 3px 2px; color: var(--muted); font-size: 12px; }
+.dt-card .f { border-color: var(--line); background: var(--surface-2); }
+.dt-card .nm { font-size: 17px; }
+.dt-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 8px; }
+.dt-h { margin: 0; font-size: 16px; font-weight: 600; }
+.dt-h .gc { margin-left: 6px; color: var(--muted); font-size: 13px; font-weight: 400; }
+#dtList .row { grid-template-columns: var(--cols-d); grid-template-areas: "next call note act"; }
+#dtList .c.name, #dtList .c.phone { display: none; }
+#dtList .c.next { grid-area: next; }
+#dtList .c.call { grid-area: call; }
+#dtList .c.note { grid-area: note; }
+#dtList .c.act { grid-area: act; }
+.dt-empty { margin: 0; padding: 16px 4px; color: var(--muted); }
+.dt-foot { display: flex; justify-content: flex-end; margin-top: 18px; }
+
+/* 상담 추가 창 */
+.dlg { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-start; justify-content: center; padding: calc(env(safe-area-inset-top, 0px) + 24px) 16px 16px; background: rgba(10, 14, 22, 0.45); overflow: auto; }
+.dlg-box { width: 100%; max-width: 440px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25); }
+.dlg-box h2 { margin: 0 0 12px; font-size: 17px; font-weight: 600; }
+.dlg .f { font-size: 16px; padding: 9px 10px; border-color: var(--line); background: var(--surface-2); }
+.pk-lab { display: block; margin: 0 0 4px 2px; color: var(--muted); font-size: 13px; }
+.pk-list { display: flex; flex-direction: column; gap: 4px; max-height: min(42vh, 320px); overflow: auto; margin: 8px 0 12px; }
+.pk-it { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); text-align: left; }
+.pk-it:hover, .pk-it.hi { border-color: var(--accent); background: var(--surface-2); }
+.pk-it b { font-size: 15px; font-weight: 600; }
+.pk-it .num { color: var(--muted); }
+.pk-m { flex-basis: 100%; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-hint { padding: 6px 2px; color: var(--muted); font-size: 13px; }
+.pk-new { padding-top: 12px; border-top: 1px solid var(--line); }
+.dlg-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.btn:disabled { opacity: 0.5; cursor: default; }
 
 /* calendar */
 .cal { margin-top: 8px; margin-bottom: 14px; }
@@ -278,7 +334,7 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
 .state p { margin: 0 auto 16px; max-width: 42ch; }
 
 @media (max-width: 899px) {
-  .heads, body.v-date .heads2 { display: none; }
+  .heads { display: none; }
   .tools { flex-basis: 100%; justify-content: flex-start; }
   #q { flex: 1 1 100%; max-width: none; }
   .day { min-height: 54px; align-items: center; gap: 2px; padding: 4px 1px; }
@@ -328,6 +384,17 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   .called { margin-right: 4px; }
   .tel { padding: 7px 10px; font-size: 13px; }
   .del { padding: 8px 10px; font-size: 13px; }
+  .row.crow { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name act" "phone phone" "memo memo" "sum sum"; }
+  .c.memo { grid-area: memo; }
+  .c.sum { grid-area: sum; }
+  .c.sum .cap { display: none; }
+  .sum-btn { padding: 9px 12px; font-size: 14px; }
+  .who { padding: 2px 0; font-size: 17px; }
+  .ph { padding: 4px 0; font-size: 15px; }
+  .dt-card { grid-template-columns: minmax(0, 1fr); }
+  .dt-card .f { font-size: 16px; padding: 8px 10px; }
+  #dtList .row { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "next call" "note note" ". act"; }
+  #dtList .c.next .cap { display: block; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 </style>
@@ -352,38 +419,79 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
         <input id="file" type="file" accept=".json,application/json" hidden>
       </div>
       <div class="tools">
-        <input id="q" type="search" placeholder="이름·번호·상담내용 검색" autocomplete="off" aria-label="고객 검색">
+        <input id="q" type="search" placeholder="이름·번호·메모·상담내용 검색" autocomplete="off" aria-label="고객 검색">
         <div class="seg" role="group" aria-label="보기 전환">
-          <button id="vAll" type="button" aria-pressed="true">전체 고객</button>
+          <button id="vAll" type="button" aria-pressed="true">고객 정보</button>
           <button id="vDate" type="button" aria-pressed="false">날짜별 연락<span id="badge" class="badge" hidden></span></button>
         </div>
         <button id="add" class="btn" type="button">+ 고객 추가</button>
       </div>
     </div>
-    <div class="heads" aria-hidden="true">
-      <span>이름</span><span>연락처</span><span>통화</span><span>지난 상담내용</span><span>다음 연락</span><span></span>
+    <div id="headsTop" class="heads hc" aria-hidden="true">
+      <span>이름</span><span>연락처</span><span>메모</span><span>상담</span><span></span>
     </div>
   </div>
 </header>
 
-<main class="wrap">
+<main id="main" class="wrap">
   <section id="cal" class="cal" aria-label="연락 일정 달력" hidden></section>
-  <div class="heads heads2" aria-hidden="true">
-    <span>이름</span><span>연락처</span><span>통화</span><span>지난 상담내용</span><span>다음 연락</span><span></span>
+  <div id="heads2" class="heads heads2" aria-hidden="true" hidden>
+    <span>이름</span><span>연락처</span><span>통화</span><span>상담내용</span><span>상담일</span><span></span>
   </div>
   <div id="list" class="list"></div>
   <div id="state" class="state" hidden></div>
+
+  <section id="detail" class="detail" aria-label="고객 정보" hidden>
+    <div class="dt-top"><button id="dtBack" class="mini-btn" type="button">‹ 고객 목록</button></div>
+    <div id="dtCard" class="dt-card">
+      <div class="dt-l"><span class="cap2">이름</span><input id="dtName" class="f nm" data-f="name" placeholder="이름" autocomplete="off" aria-label="이름"></div>
+      <div class="dt-l"><span class="cap2">연락처</span><div class="phone-in"><input id="dtPhone" class="f num" data-f="phone" type="text" inputmode="tel" placeholder="010-0000-0000" autocomplete="off" aria-label="연락처"><a class="tel" href="#" hidden>전화</a></div></div>
+      <div class="dt-l wide"><span class="cap2">메모</span><textarea id="dtMemo" class="f" data-f="memo" rows="2" placeholder="주소, 특이사항 등 고객에 대해 기억할 내용" aria-label="고객 메모"></textarea></div>
+    </div>
+    <div class="dt-bar">
+      <h2 class="dt-h">상담 이력<span id="dtCount" class="gc"></span></h2>
+      <button id="dtAdd" class="btn" type="button">+ 상담 추가</button>
+    </div>
+    <div class="heads heads3" aria-hidden="true"><span>상담일</span><span>통화</span><span>상담내용</span><span></span></div>
+    <div id="dtList" class="list"></div>
+    <p id="dtEmpty" class="dt-empty" hidden>아직 상담 기록이 없습니다. "+ 상담 추가"를 누르거나, 날짜별 연락 달력에서 날짜를 고른 뒤 이 고객을 추가하세요.</p>
+    <div class="dt-foot"><button id="dtDel" class="del" type="button">이 고객 삭제</button></div>
+  </section>
 </main>
+
+<div id="pick" class="dlg" hidden>
+  <div class="dlg-box" role="dialog" aria-modal="true" aria-labelledby="pkTitle">
+    <h2 id="pkTitle">상담 추가</h2>
+    <label class="pk-lab" for="pkName">기존 고객을 찾거나, 새 고객 이름을 적으세요</label>
+    <input id="pkName" class="f" type="text" enterkeyhint="done" autocomplete="off" placeholder="이름이나 전화번호 일부">
+    <div id="pkList" class="pk-list" role="listbox" aria-label="기존 고객"></div>
+    <div class="pk-new">
+      <label class="pk-lab" for="pkPhone">새 고객이면 연락처도 적어 주세요 (선택)</label>
+      <input id="pkPhone" class="f num" type="text" inputmode="tel" autocomplete="off" placeholder="010-0000-0000">
+    </div>
+    <div class="dlg-btns">
+      <button id="pkCancel" class="mini-btn" type="button">취소</button>
+      <button id="pkOk" class="btn" type="button" disabled>새 고객으로 추가</button>
+    </div>
+  </div>
+</div>
 
 <script>
 (function () {
   'use strict';
   var $ = function (s) { return document.querySelector(s); };
-  var listEl = $('#list'), stateEl = $('#state'), calEl = $('#cal'), summaryEl = $('#summary'), saveEl = $('#save'), qEl = $('#q');
-  var vAll = $('#vAll'), vDate = $('#vDate'), badgeEl = $('#badge'), bkInfoEl = $('#bkInfo'), fileEl = $('#file');
+  var mainEl = $('#main'), listEl = $('#list'), stateEl = $('#state'), calEl = $('#cal'), summaryEl = $('#summary'), saveEl = $('#save'), qEl = $('#q');
+  var vAll = $('#vAll'), vDate = $('#vDate'), badgeEl = $('#badge'), bkInfoEl = $('#bkInfo'), fileEl = $('#file'), addBtn = $('#add');
+  var headsTop = $('#headsTop'), heads2El = $('#heads2');
+  var detailEl = $('#detail'), dtCard = $('#dtCard'), dtList = $('#dtList'), dtCount = $('#dtCount'), dtEmpty = $('#dtEmpty'), dtDel = $('#dtDel');
   var STATUS = { none: '미통화', done: '통화완료', miss: '부재중' };
   var WD = ['일', '월', '화', '수', '목', '금', '토'];
   var KEY = 'crm_customers_v1', KEY_BK = 'crm_last_backup', KEY_VIEW = 'crm_view';
+
+  /* 저장 구조 (KEY 하나에 id → 기록):
+     고객  { kind:'c', name, phone, memo, createdAt, updatedAt }
+     상담  { kind:'v', cid(고객 id), date, status, calledAt, note, createdAt, updatedAt }
+     예전 형식(kind 없음: 고객 한 명 = 다음 연락 하나)은 불러올 때 자동으로 고객 + 상담 하나로 바꾼다. */
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
@@ -415,20 +523,21 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     ta.style.height = 'auto';
     ta.style.height = Math.max(ta.scrollHeight + 2, 34) + 'px';
   }
-  function norm(d) {
-    return Object.assign({ name: '', phone: '', status: 'none', calledAt: '', note: '', nextDate: '', createdAt: 0 }, d || {});
-  }
+  function normC(d) { return Object.assign({ name: '', phone: '', memo: '', createdAt: 0 }, d || {}); }
+  function normV(d) { return Object.assign({ cid: '', date: '', status: 'none', calledAt: '', note: '', createdAt: 0 }, d || {}); }
+  function isV(d) { return !!d && d.kind === 'v'; }
   function byName(a, b) { return (a.name || '￿').localeCompare(b.name || '￿', 'ko'); }
-  function newId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function newId(p) { return (p || 'c') + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function digitsOf(s) { return String(s || '').replace(/\D/g, ''); }
 
   var storageOk = true;
   try { localStorage.setItem('crm_probe', '1'); localStorage.removeItem('crm_probe'); } catch (e) { storageOk = false; }
 
-  var customers = new Map();
-  var rows = new Map();
-  var heads = new Map();
+  var customers = new Map();   // 모든 기록 (고객 + 상담)
+  var rowsMain = new Map(), rowsDt = new Map(), heads = new Map();
   var query = '';
   var view = lsGet(KEY_VIEW) === 'date' ? 'date' : 'all';
+  var detailId = null;
   var sel = today();
   var monthKey = sel.slice(0, 7);
   var calSig = '';
@@ -436,6 +545,25 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   var saveTimer = null, persistTimer = null, persistAsked = false;
 
   /* ---------- storage ---------- */
+  function migrate(m) {
+    var changed = false, now = Date.now();
+    m.forEach(function (d, id) {
+      if (d.kind === 'c' || d.kind === 'v') return;
+      var created = Number(d.createdAt) || now;
+      var hasOld = d.nextDate || d.note || d.calledAt || (d.status && d.status !== 'none');
+      m.set(id, { kind: 'c', name: String(d.name || ''), phone: String(d.phone || ''), memo: '', createdAt: created, updatedAt: now });
+      if (hasOld) {
+        m.set('v_' + id, {
+          kind: 'v', cid: id, date: d.nextDate || d.calledAt || ymd(new Date(created)),
+          status: STATUS[d.status] ? d.status : 'none', calledAt: d.calledAt || '', note: String(d.note || ''),
+          createdAt: created, updatedAt: now
+        });
+      }
+      changed = true;
+    });
+    return changed;
+  }
+  function toObj(m) { var o = {}; m.forEach(function (d, id) { o[id] = d; }); return o; }
   function loadAll() {
     var m = new Map();
     try {
@@ -443,6 +571,7 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
       var o = raw ? JSON.parse(raw) : {};
       Object.keys(o).forEach(function (id) { if (o[id] && typeof o[id] === 'object') m.set(id, o[id]); });
     } catch (e) { /* empty */ }
+    if (migrate(m)) lsSet(KEY, JSON.stringify(toObj(m)));
     return m;
   }
   function setSave(text, err, ms) {
@@ -455,9 +584,7 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   function persist() {
     clearTimeout(persistTimer);
     persistTimer = null;
-    var obj = {};
-    customers.forEach(function (d, id) { obj[id] = d; });
-    if (lsSet(KEY, JSON.stringify(obj))) {
+    if (lsSet(KEY, JSON.stringify(toObj(customers)))) {
       setSave('저장됨');
       if (!persistAsked && navigator.storage && navigator.storage.persist) {
         persistAsked = true;
@@ -480,38 +607,99 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     queuePersist(now);
   }
 
+  /* 고객 목록 + 고객별 상담 묶음 */
+  function index() {
+    var cs = new Map(), vsBy = new Map(), vis = [];
+    customers.forEach(function (d, id) {
+      if (isV(d)) { var v = normV(d); v.id = id; vis.push(v); }
+      else {
+        var c = normC(d); c.id = id;
+        c.name = String(c.name || ''); c.phone = String(c.phone || ''); c.memo = String(c.memo || '');
+        cs.set(id, c); vsBy.set(id, []);
+      }
+    });
+    vis = vis.filter(function (v) {
+      var c = cs.get(v.cid);
+      if (!c) return false;      // 고객이 아직 동기화되지 않았거나 지워진 상담은 숨긴다
+      v.c = c; v.name = c.name; v.note = String(v.note || '');
+      vsBy.get(v.cid).push(v);
+      return true;
+    });
+    return { cs: cs, vsBy: vsBy, vis: vis };
+  }
+  function summaryOf(vs) {
+    var next = null, last = null;
+    vs.forEach(function (v) {
+      if (v.status !== 'done' && v.date && (!next || v.date < next.date)) next = v;
+      if (v.status !== 'none') { var k = v.calledAt || v.date; if (!last || k > last.k) last = { v: v, k: k }; }
+    });
+    return { next: next, last: last };
+  }
+
   /* ---------- rows ---------- */
-  var TPL = document.createElement('template');
-  TPL.innerHTML =
-    '<article class="row">' +
+  function tpl(html) { var t = document.createElement('template'); t.innerHTML = html; return t; }
+  var CALL = '<div class="c call"><span class="cap">통화</span><span class="pill"><select data-f="status" aria-label="통화 여부"><option value="none">미통화</option><option value="done">통화완료</option><option value="miss">부재중</option></select></span><span class="called"></span></div>';
+  var CTPL = tpl(
+    '<article class="row crow">' +
     '<div class="c name"><span class="cap">이름</span><input class="f nm" data-f="name" placeholder="이름" autocomplete="off" aria-label="이름"></div>' +
     '<div class="c phone"><span class="cap">연락처</span><div class="phone-in"><input class="f num" data-f="phone" type="text" inputmode="tel" placeholder="010-0000-0000" autocomplete="off" aria-label="연락처"><a class="tel" href="#" hidden>전화</a></div></div>' +
-    '<div class="c call"><span class="cap">통화</span><span class="pill"><select data-f="status" aria-label="통화 여부"><option value="none">미통화</option><option value="done">통화완료</option><option value="miss">부재중</option></select></span><span class="called"></span></div>' +
-    '<div class="c note"><span class="cap">지난 상담내용</span><textarea class="f" data-f="note" rows="2" placeholder="지난 상담 내용을 적어두세요" aria-label="지난 상담내용"></textarea></div>' +
-    '<div class="c next"><span class="cap">다음 연락</span><input class="f" data-f="nextDate" type="date" aria-label="다음 연락일"></div>' +
+    '<div class="c memo"><span class="cap">메모</span><textarea class="f" data-f="memo" rows="1" placeholder="주소, 특이사항 등" aria-label="고객 메모"></textarea></div>' +
+    '<div class="c sum"><span class="cap">상담</span><button class="sum-btn" type="button"><span class="sum-1"></span><span class="sum-2"></span><span class="sum-3"></span></button></div>' +
     '<div class="c act"><button class="del" type="button" aria-label="고객 삭제">삭제</button></div>' +
-    '</article>';
+    '</article>');
+  var VTPL = tpl(
+    '<article class="row vrow">' +
+    '<div class="c name"><span class="cap">이름</span><button class="who" type="button" title="고객 정보 보기"><span class="who-n"></span><span class="who-a" aria-hidden="true">›</span></button></div>' +
+    '<div class="c phone"><span class="cap">연락처</span><div class="phone-in"><span class="ph num"></span><a class="tel" href="#" hidden>전화</a></div></div>' +
+    CALL +
+    '<div class="c note"><span class="cap">상담내용</span><textarea class="f" data-f="note" rows="2" placeholder="상담 내용을 적어두세요" aria-label="상담내용"></textarea></div>' +
+    '<div class="c next"><span class="cap">상담일</span><input class="f" data-f="date" type="date" aria-label="상담일"></div>' +
+    '<div class="c act"><button class="del" type="button" aria-label="상담 삭제">삭제</button></div>' +
+    '</article>');
 
-  function makeRow(id) {
-    var r = TPL.content.firstElementChild.cloneNode(true);
+  function makeRow(t, id, pfx) {
+    var r = t.content.firstElementChild.cloneNode(true);
     r.dataset.id = id;
-    r.querySelectorAll('[data-f]').forEach(function (f) { f.id = 'f-' + f.dataset.f + '-' + id; });
+    r.querySelectorAll('[data-f]').forEach(function (f) { f.id = pfx + '-' + f.dataset.f + '-' + id; });
     return r;
   }
-  function fill(r, c) {
+  function fillFields(r, rec) {
     var active = document.activeElement;
-    r.dataset.status = STATUS[c.status] ? c.status : 'none';
-    r.classList.toggle('dim', view === 'date' && c.status === 'done');
     r.querySelectorAll('[data-f]').forEach(function (f) {
       if (f === active) return;
-      var v = c[f.dataset.f] == null ? '' : String(c[f.dataset.f]);
+      var v = rec[f.dataset.f] == null ? '' : String(rec[f.dataset.f]);
       if (f.value !== v) { f.value = v; if (f.tagName === 'TEXTAREA') autosize(f); }
     });
-    r.querySelector('.called').textContent = c.calledAt && c.status !== 'none' ? md(c.calledAt) + ' 통화' : '';
+  }
+  function setTel(r, phone) {
     var tel = r.querySelector('.tel');
-    var num = String(c.phone || '').replace(/[^\d+]/g, '');
+    var num = String(phone || '').replace(/[^\d+]/g, '');
     tel.hidden = !num;
     if (num) tel.href = 'tel:' + num;
+  }
+  function fillC(r, c, vs, t) {
+    fillFields(r, c);
+    setTel(r, c.phone);
+    var s = summaryOf(vs);
+    var l1 = r.querySelector('.sum-1'), l2 = r.querySelector('.sum-2'), l3 = r.querySelector('.sum-3');
+    if (s.next) {
+      var d = s.next.date;
+      l1.textContent = d < t ? '기한 지남 ' + md(d) : d === t ? '오늘 연락' : '다음 연락 ' + md(d);
+      l1.className = 'sum-1' + (d < t ? ' late' : d === t ? ' today' : '');
+    } else { l1.textContent = '예정된 연락 없음'; l1.className = 'sum-1 none'; }
+    l2.textContent = s.last ? '최근 ' + md(s.last.k) + ' ' + STATUS[s.last.v.status] : '';
+    l2.hidden = !s.last;
+    l3.textContent = vs.length ? '상담 ' + vs.length + '건 보기 ›' : '고객 정보 보기 ›';
+  }
+  function fillV(r, v, inDt) {
+    r.dataset.status = STATUS[v.status] ? v.status : 'none';
+    r.dataset.cid = v.cid;
+    r.classList.toggle('dim', !inDt && view === 'date' && v.status === 'done');
+    fillFields(r, v);
+    r.querySelector('.called').textContent = v.calledAt && v.status !== 'none' ? md(v.calledAt) + ' 통화' : '';
+    r.querySelector('.who-n').textContent = v.c.name || '(이름 없음)';
+    r.querySelector('.ph').textContent = v.c.phone;
+    setTel(r, v.c.phone);
   }
   function headFor(key, text, count, cls) {
     var h = heads.get(key);
@@ -530,6 +718,21 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     if (k === t) return { rel: '오늘', cls: 'today' };
     if (k === tm) return { rel: '내일', cls: '' };
     return { rel: '', cls: '' };
+  }
+  /* 줄 순서 맞추기: 입력 중인 줄은 건드리지 않는다 */
+  function placeRows(container, map, order) {
+    var keep = new Set(order);
+    Array.prototype.slice.call(container.children).forEach(function (n) { if (!keep.has(n)) n.remove(); });
+    map.forEach(function (r, id) { if (!keep.has(r)) map.delete(id); });
+    var activeRow = document.activeElement && document.activeElement.closest ? document.activeElement.closest('.row') : null;
+    var prev = null;
+    order.forEach(function (n) {
+      if (n !== activeRow) {
+        var want = prev ? prev.nextSibling : container.firstChild;
+        if (n !== want) container.insertBefore(n, want);
+      }
+      prev = n;
+    });
   }
 
   /* ---------- calendar ---------- */
@@ -615,21 +818,22 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     stateEl.replaceChildren();
     var h = el('h2'), p = el('p'), b = null;
     if (kind === 'empty') {
-      h.textContent = '아직 고객이 없습니다'; p.textContent = '고객을 추가하면 이름, 연락처, 통화 여부, 지난 상담내용이 한 줄에 보입니다. 다른 곳에서 쓰던 백업 파일이 있으면 위의 "백업 불러오기"로 가져올 수 있습니다.';
-      b = el('button', 'btn', '+ 고객 추가'); b.type = 'button'; b.onclick = addCustomer;
+      h.textContent = '아직 고객이 없습니다';
+      p.textContent = '고객을 추가하면 이름, 연락처, 메모가 저장됩니다. 날짜별 연락 달력에서 날짜를 누르고 고객을 고르면 그날 상담이 쌓입니다. 다른 곳에서 쓰던 백업 파일이 있으면 위의 "백업 불러오기"로 가져올 수 있습니다.';
+      b = el('button', 'btn', '+ 고객 추가'); b.type = 'button'; b.onclick = onAdd;
     } else if (kind === 'dayempty') {
       h.textContent = '이 날은 연락 예정이 없습니다';
-      p.textContent = '+ 고객 추가를 누르면 이 날짜로 등록됩니다. 전체 고객에서 기존 고객의 "다음 연락"을 이 날짜로 정해도 됩니다.';
-      b = el('button', 'btn', '+ 고객 추가'); b.type = 'button'; b.onclick = addCustomer;
+      p.textContent = '+ 상담 추가를 누르고 기존 고객 이름을 고르면 이 날짜에 상담이 등록됩니다. 처음 보는 고객이면 이름을 적어 새로 추가하세요.';
+      b = el('button', 'btn', '+ 상담 추가'); b.type = 'button'; b.onclick = onAdd;
     } else if (kind === 'nomatch') { h.textContent = '검색 결과가 없습니다'; p.textContent = '검색어를 바꿔 보세요.'; }
     stateEl.append(h, p);
     if (b) stateEl.append(b);
   }
 
-  function updateBackupInfo() {
+  function updateBackupInfo(n) {
     var last = lsGet(KEY_BK);
     var warn = false, text = '';
-    if (customers.size) {
+    if (n) {
       if (!last) { text = '아직 백업하지 않았습니다'; warn = true; }
       else {
         var days = Math.floor((new Date(today() + 'T00:00:00') - new Date(last + 'T00:00:00')) / 86400000);
@@ -641,131 +845,286 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     bkInfoEl.className = 'bk-info' + (warn ? ' warn' : '');
   }
 
+  function matches(q, digits, c, vs) {
+    if (!q) return true;
+    var hay = (c.name + '\n' + c.phone + '\n' + c.memo + '\n' + vs.map(function (v) { return v.note; }).join('\n')).toLowerCase();
+    return hay.indexOf(q) >= 0 || (digits.length >= 3 && digitsOf(c.phone).indexOf(digits) >= 0);
+  }
+
   function render() {
+    if (detailId && !(customers.has(detailId) && !isV(customers.get(detailId)))) detailId = null;
+    var inDt = !!detailId;
     vAll.setAttribute('aria-pressed', String(view === 'all'));
     vDate.setAttribute('aria-pressed', String(view === 'date'));
-    document.body.classList.toggle('v-date', view === 'date');
+    document.body.classList.toggle('v-date', view === 'date' && !inDt);
+    document.body.classList.toggle('v-detail', inDt);
+    addBtn.textContent = view === 'date' ? '+ 상담 추가' : '+ 고객 추가';
+    addBtn.hidden = inDt;
+    qEl.hidden = inDt;
     var t = today(), tm = tomorrow();
     var q = query.trim().toLowerCase();
     var digits = q.replace(/\D/g, '');
-    var all = [], matched = [], nNone = 0, nToday = 0, nLate = 0, nNoDate = 0;
-    customers.forEach(function (d, id) {
-      var c = norm(d); c.id = id;
-      c.phone = String(c.phone || ''); c.name = String(c.name || ''); c.note = String(c.note || '');
-      all.push(c);
-      if (c.status === 'none') nNone++;
-      if (c.status !== 'done') {
-        if (!c.nextDate) nNoDate++;
-        else if (c.nextDate < t) nLate++;
-        else if (c.nextDate === t) nToday++;
-      }
-      if (!q) { matched.push(c); return; }
-      var hay = (c.name + '\n' + c.phone + '\n' + c.note).toLowerCase();
-      if (hay.indexOf(q) >= 0 || (digits.length >= 3 && c.phone.replace(/\D/g, '').indexOf(digits) >= 0)) matched.push(c);
+    var ix = index();
+    var nToday = 0, nLate = 0, nNoDate = 0;
+    ix.vis.forEach(function (v) {
+      if (v.status === 'done') return;
+      if (!v.date) nNoDate++;
+      else if (v.date < t) nLate++;
+      else if (v.date === t) nToday++;
     });
     badgeEl.hidden = !(nToday + nLate);
     badgeEl.textContent = String(nToday + nLate);
-    summaryEl.textContent = view === 'all'
-      ? '총 ' + all.length + '명 · 미통화 ' + nNone + '명'
-      : '오늘 연락 ' + nToday + '명 · 기한 지남 ' + nLate + '명 · 날짜 미정 ' + nNoDate + '명';
-    updateBackupInfo();
+    summaryEl.textContent = view === 'all' || inDt
+      ? '고객 ' + ix.cs.size + '명 · 상담 ' + ix.vis.length + '건'
+      : '오늘 연락 ' + nToday + '명 · 기한 지남 ' + nLate + '명' + (nNoDate ? ' · 날짜 미정 ' + nNoDate + '건' : '');
+    updateBackupInfo(ix.cs.size);
+
+    headsTop.hidden = inDt || view !== 'all';
+    heads2El.hidden = inDt || view !== 'date';
+    detailEl.hidden = !inDt;
+    listEl.hidden = inDt;
+    if (inDt) {
+      calEl.hidden = true;
+      stateEl.hidden = true;
+      renderDetail(ix);
+      focusPending();
+      return;
+    }
 
     var order = [], fresh = [], shown = 0;
-    var rowFor = function (c) {
-      var r = rows.get(c.id);
-      if (!r) { r = makeRow(c.id); rows.set(c.id, r); fresh.push(r); }
-      fill(r, c);
+    var rowOf = function (id, t2) {
+      var r = rowsMain.get(id);
+      if (!r || r.__t !== t2) { r = makeRow(t2, id, 'm'); r.__t = t2; rowsMain.set(id, r); fresh.push(r); }
       order.push(r);
       shown++;
+      return r;
     };
 
     if (view === 'all') {
       calEl.hidden = true;
-      matched.sort(function (a, b) { return b.createdAt - a.createdAt; });
-      matched.forEach(rowFor);
+      var cl = [];
+      ix.cs.forEach(function (c) { if (matches(q, digits, c, ix.vsBy.get(c.id))) cl.push(c); });
+      cl.sort(function (a, b) { return b.createdAt - a.createdAt; });
+      cl.forEach(function (c) { fillC(rowOf(c.id, CTPL), c, ix.vsBy.get(c.id), t); });
     } else {
       var byDay = {};
-      matched.forEach(function (c) { if (c.nextDate) (byDay[c.nextDate] = byDay[c.nextDate] || []).push(c); });
+      ix.vis.forEach(function (v) {
+        if (v.date && (!q || matches(q, digits, v.c, [v]))) (byDay[v.date] = byDay[v.date] || []).push(v);
+      });
       var lateN = 0;
       Object.keys(byDay).forEach(function (k) {
-        if (k < t) byDay[k].forEach(function (c) { if (c.status !== 'done') lateN++; });
+        if (k < t) byDay[k].forEach(function (v) { if (v.status !== 'done') lateN++; });
       });
       if (sel === 'late' && !lateN) sel = t;
-      calEl.hidden = !all.length;
-      if (all.length) renderCal(byDay, t, lateN);
+      calEl.hidden = false;
+      renderCal(byDay, t, lateN);
+      var putV = function (v) { fillV(rowOf(v.id, VTPL), v, false); };
       if (sel === 'late') {
         Object.keys(byDay).filter(function (k) { return k < t; }).sort().forEach(function (k) {
-          var g = byDay[k].filter(function (c) { return c.status !== 'done'; }).sort(byName);
+          var g = byDay[k].filter(function (v) { return v.status !== 'done'; }).sort(byName);
           if (!g.length) return;
           order.push(headFor(k, '기한 지남 · ' + dlabel(k), g.length, 'late'));
-          g.forEach(rowFor);
+          g.forEach(putV);
         });
       } else {
         var g2 = (byDay[sel] || []).slice().sort(byName);
         if (g2.length) {
-          var open = g2.some(function (c) { return c.status !== 'done'; });
+          var open = g2.some(function (v) { return v.status !== 'done'; });
           var rr = relOf(sel, open, t, tm);
           order.push(headFor(sel, (rr.rel ? rr.rel + ' · ' : '') + dlabel(sel), g2.length, rr.cls));
-          g2.forEach(rowFor);
+          g2.forEach(putV);
         }
       }
     }
 
+    placeRows(listEl, rowsMain, order);
     var keepSet = new Set(order);
-    Array.prototype.slice.call(listEl.children).forEach(function (n) { if (!keepSet.has(n)) n.remove(); });
-    rows.forEach(function (r, id) { if (!keepSet.has(r)) rows.delete(id); });
     heads.forEach(function (h, k) { if (!keepSet.has(h)) heads.delete(k); });
-    var activeRow = document.activeElement && document.activeElement.closest ? document.activeElement.closest('.row') : null;
-    var prev = null;
-    order.forEach(function (n) {
-      if (n !== activeRow) {
-        var want = prev ? prev.nextSibling : listEl.firstChild;
-        if (n !== want) listEl.insertBefore(n, want);
-      }
-      prev = n;
-    });
     fresh.forEach(function (r) { r.querySelectorAll('textarea').forEach(autosize); });
 
-    if (!all.length) showState('empty');
+    if (view === 'all' && !ix.cs.size) showState('empty');
     else if (!shown) showState(view === 'date' && !q ? 'dayempty' : 'nomatch');
     else showState(null);
+    focusPending();
+  }
 
-    if (pendingFocus && rows.has(pendingFocus)) {
-      var nm = rows.get(pendingFocus).querySelector('[data-f="name"]');
-      pendingFocus = null;
-      nm.focus();
-      nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
+  function renderDetail(ix) {
+    var c = ix.cs.get(detailId);
+    dtCard.dataset.id = c.id;
+    fillFields(dtCard, c);
+    setTel(dtCard, c.phone);
+    autosize($('#dtMemo'));
+    var vs = ix.vsBy.get(c.id).slice().sort(function (a, b) {
+      return (b.date || '9999').localeCompare(a.date || '9999') || b.createdAt - a.createdAt;
+    });
+    dtCount.textContent = vs.length + '건';
+    var order = [], fresh = [];
+    vs.forEach(function (v) {
+      var r = rowsDt.get(v.id);
+      if (!r) { r = makeRow(VTPL, v.id, 'd'); rowsDt.set(v.id, r); fresh.push(r); }
+      fillV(r, v, true);
+      order.push(r);
+    });
+    placeRows(dtList, rowsDt, order);
+    fresh.forEach(function (r) { r.querySelectorAll('textarea').forEach(autosize); });
+    dtEmpty.hidden = vs.length > 0;
+    if (dtDel.dataset.arm !== '1') dtDel.textContent = '이 고객 삭제';
+  }
+
+  function focusPending() {
+    if (!pendingFocus) return;
+    var r = (pendingFocus.dt ? rowsDt : rowsMain).get(pendingFocus.id);
+    if (!r) return;
+    var f = r.querySelector(pendingFocus.sel);
+    pendingFocus = null;
+    if (!f) return;
+    f.focus();
+    f.scrollIntoView({ block: 'center', behavior: 'smooth' });
   }
 
   function setView(v) {
     view = v;
+    detailId = null;
     lsSet(KEY_VIEW, v);
     if (v === 'date') { sel = today(); monthKey = sel.slice(0, 7); }
     render();
     window.scrollTo(0, 0);
   }
+  function openDetail(id) {
+    flushAll();
+    detailId = id;
+    render();
+    window.scrollTo(0, 0);
+  }
+  function closeDetail() {
+    detailId = null;
+    render();
+    window.scrollTo(0, 0);
+  }
 
   /* ---------- actions ---------- */
+  function onAdd() { if (view === 'date') openPicker(); else addCustomer(); }
   function addCustomer() {
     query = ''; qEl.value = '';
-    var nd = '';
-    if (view === 'date') {
-      if (sel === 'late') { sel = today(); monthKey = sel.slice(0, 7); }
-      nd = sel;
-    }
-    var id = newId();
-    var now = Date.now();
-    customers.set(id, { name: '', phone: '', status: 'none', calledAt: '', note: '', nextDate: nd, createdAt: now, updatedAt: now });
-    pendingFocus = id;
+    var id = newId('c'), now = Date.now();
+    customers.set(id, { kind: 'c', name: '', phone: '', memo: '', createdAt: now, updatedAt: now });
+    pendingFocus = { id: id, sel: '[data-f="name"]' };
     queuePersist(true);
     render();
   }
-  function deleteCustomer(id) {
+  function addVisit(cid, date) {
+    var id = newId('v'), now = Date.now();
+    customers.set(id, { kind: 'v', cid: cid, date: date, status: 'none', calledAt: '', note: '', createdAt: now, updatedAt: now });
+    queuePersist(true);
+    return id;
+  }
+  function deleteRecord(id) {
+    var d = customers.get(id);
+    if (!d) return;
     customers.delete(id);
+    if (!isV(d)) {
+      customers.forEach(function (x, vid) { if (isV(x) && x.cid === id) customers.delete(vid); });
+      if (detailId === id) detailId = null;
+    }
     queuePersist(true);
     render();
   }
+
+  /* ---------- 상담 추가 창 (날짜별 연락에서 + 상담 추가) ---------- */
+  var pk = { el: $('#pick'), name: $('#pkName'), phone: $('#pkPhone'), list: $('#pkList'), ok: $('#pkOk'), title: $('#pkTitle'), date: '', items: [], hi: -1, back: null };
+  function openPicker() {
+    if (sel === 'late') { sel = today(); monthKey = sel.slice(0, 7); render(); }
+    pk.date = sel;
+    pk.back = document.activeElement;
+    pk.title.textContent = dlabel(pk.date) + ' 상담 추가';
+    pk.name.value = ''; pk.phone.value = '';
+    pk.el.hidden = false;
+    renderPick();
+    pk.name.focus();
+  }
+  function closePicker() {
+    if (pk.el.hidden) return;
+    pk.el.hidden = true;
+    if (pk.back && pk.back.isConnected) try { pk.back.focus(); } catch (e) { /* ignore */ }
+  }
+  function renderPick() {
+    var q = pk.name.value.trim().toLowerCase(), digits = q.replace(/\D/g, '');
+    var ix = index(), list = [], exact = false;
+    ix.cs.forEach(function (c) {
+      var nm = c.name.toLowerCase();
+      if (q && nm === q) exact = true;
+      if (!q || nm.indexOf(q) >= 0 || (digits.length >= 3 && digitsOf(c.phone).indexOf(digits) >= 0)) list.push(c);
+    });
+    list.sort(function (a, b) {
+      var ap = q && a.name.toLowerCase().indexOf(q) === 0 ? 0 : 1, bp = q && b.name.toLowerCase().indexOf(q) === 0 ? 0 : 1;
+      return ap - bp || byName(a, b);
+    });
+    pk.items = list.slice(0, 50);
+    if (pk.hi >= pk.items.length) pk.hi = -1;
+    pk.list.replaceChildren();
+    pk.items.forEach(function (c, i) {
+      var b = el('button', 'pk-it' + (i === pk.hi ? ' hi' : ''));
+      b.type = 'button';
+      b.setAttribute('role', 'option');
+      b.dataset.id = c.id;
+      b.append(el('b', null, c.name || '(이름 없음)'), el('span', 'num', c.phone));
+      var s = summaryOf(ix.vsBy.get(c.id));
+      var sub = c.memo ? c.memo.split('\n')[0] : s.last ? '최근 ' + md(s.last.k) + ' ' + STATUS[s.last.v.status] : '';
+      if (sub) b.append(el('span', 'pk-m', sub));
+      pk.list.append(b);
+    });
+    if (!pk.items.length) {
+      pk.list.append(el('div', 'pk-hint', q ? '일치하는 기존 고객이 없습니다. 아래에 연락처를 적고 "새 고객으로 추가"를 누르세요.' : '아직 등록된 고객이 없습니다. 새 고객 이름을 적어 주세요.'));
+    } else if (list.length > pk.items.length) {
+      pk.list.append(el('div', 'pk-hint', '그 밖에 ' + (list.length - pk.items.length) + '명 더 있습니다. 이름을 더 적어 좁혀 보세요.'));
+    }
+    pk.ok.disabled = !q;
+    pk.ok.textContent = exact ? '같은 이름의 새 고객으로 추가' : '새 고객으로 추가';
+  }
+  function pickExisting(cid) {
+    var date = pk.date, found = null;
+    customers.forEach(function (d, id) { if (!found && isV(d) && d.cid === cid && d.date === date) found = id; });
+    var vid = found || addVisit(cid, date);
+    pk.back = null;
+    closePicker();
+    query = ''; qEl.value = '';
+    sel = date; monthKey = date.slice(0, 7);
+    pendingFocus = { id: vid, sel: '[data-f="note"]' };
+    render();
+    if (found) setSave('이 날에 이미 있는 상담을 열었습니다.');
+  }
+  function pickNew() {
+    var name = pk.name.value.trim();
+    if (!name) return;
+    var id = newId('c'), now = Date.now();
+    customers.set(id, { kind: 'c', name: name, phone: pk.phone.value.trim(), memo: '', createdAt: now, updatedAt: now });
+    pickExisting(id);
+  }
+  pk.name.addEventListener('input', function () { pk.hi = -1; renderPick(); });
+  pk.name.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!pk.items.length) return;
+      e.preventDefault();
+      pk.hi = e.key === 'ArrowDown' ? Math.min(pk.hi + 1, pk.items.length - 1) : Math.max(pk.hi - 1, -1);
+      renderPick();
+      var h = pk.list.querySelector('.hi');
+      if (h) h.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (pk.hi >= 0 && pk.items[pk.hi]) pickExisting(pk.items[pk.hi].id);
+      else if (pk.items.length === 1 && pk.items[0].name.toLowerCase() === pk.name.value.trim().toLowerCase()) pickExisting(pk.items[0].id);
+      else pk.phone.focus();
+    }
+  });
+  pk.phone.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); pickNew(); } });
+  pk.list.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.pk-it');
+    if (b) pickExisting(b.dataset.id);
+  });
+  pk.ok.addEventListener('click', pickNew);
+  $('#pkCancel').addEventListener('click', closePicker);
+  pk.el.addEventListener('click', function (e) { if (e.target === pk.el) closePicker(); });
+  pk.el.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); closePicker(); } });
 
   /* ---------- backup / export ---------- */
   /* 앱(안드로이드/윈도우)에서는 app-bridge.js의 AppFiles.save로 실제 파일을 저장하고, 저장 위치를 done(위치)로 알려준다.
@@ -790,12 +1149,11 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   }
   function exportBackup() {
-    var obj = {};
-    customers.forEach(function (d, id) { obj[id] = d; });
-    var payload = { app: 'customer-notes', version: 1, exportedAt: new Date().toISOString(), customers: obj };
+    flushAll();
+    var payload = { app: 'customer-notes', version: 2, exportedAt: new Date().toISOString(), customers: toObj(customers) };
     download('customer-notes-backup-' + today() + '.json', JSON.stringify(payload, null, 1), 'application/json', function (where) {
       lsSet(KEY_BK, today());
-      updateBackupInfo();
+      updateBackupInfo(1);
       setSave(where ? '백업 파일을 저장했습니다. 저장 위치: ' + where : '백업 파일을 저장했습니다. 다운로드 폴더를 확인하세요.', false, where ? 12000 : 0);
     });
   }
@@ -805,12 +1163,17 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     return '"' + s.replace(/"/g, '""') + '"';
   }
   function exportCsv() {
-    var lines = [['이름', '연락처', '통화 여부', '최근 통화일', '다음 연락', '지난 상담내용'].map(function (h) { return csvCell(h); }).join(',')];
-    var list = [];
-    customers.forEach(function (d, id) { list.push(norm(d)); });
-    list.sort(function (a, b) { return b.createdAt - a.createdAt; });
-    list.forEach(function (c) {
-      lines.push([csvCell(c.name, true), csvCell(c.phone), csvCell(STATUS[c.status] || STATUS.none), csvCell(c.calledAt), csvCell(c.nextDate), csvCell(c.note, true)].join(','));
+    var lines = [['이름', '연락처', '고객 메모', '상담일', '통화 여부', '통화일', '상담내용'].map(function (h) { return csvCell(h); }).join(',')];
+    var ix = index(), cl = [];
+    ix.cs.forEach(function (c) { cl.push(c); });
+    cl.sort(byName);
+    cl.forEach(function (c) {
+      var head = [csvCell(c.name, true), csvCell(c.phone), csvCell(c.memo, true)];
+      var vs = ix.vsBy.get(c.id).slice().sort(function (a, b) { return (a.date || '').localeCompare(b.date || ''); });
+      if (!vs.length) { lines.push(head.concat(['""', '""', '""', '""']).join(',')); return; }
+      vs.forEach(function (v) {
+        lines.push(head.concat([csvCell(v.date), csvCell(STATUS[v.status] || STATUS.none), csvCell(v.calledAt), csvCell(v.note, true)]).join(','));
+      });
     });
     download('customer-notes-' + today() + '.csv', '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', function (where) {
       setSave(where ? '엑셀용 CSV 파일을 저장했습니다. 저장 위치: ' + where : '엑셀용 CSV 파일을 저장했습니다.', false, where ? 12000 : 0);
@@ -824,13 +1187,17 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
         var data = JSON.parse(String(rd.result));
         var src = data && typeof data.customers === 'object' && data.customers ? data.customers : null;
         if (!src) throw new Error('bad');
-        var n = 0;
-        Object.keys(src).forEach(function (id) {
-          if (src[id] && typeof src[id] === 'object') { customers.set(id, norm(src[id])); n++; }
+        var m = new Map();
+        Object.keys(src).forEach(function (id) { if (src[id] && typeof src[id] === 'object') m.set(id, src[id]); });
+        migrate(m);
+        var now = Date.now(), nC = 0, nV = 0;
+        m.forEach(function (d, id) {
+          customers.set(id, Object.assign({}, d, { updatedAt: Math.max(Number(d.updatedAt) || 0, now) }));
+          if (isV(d)) nV++; else nC++;
         });
-        queuePersist(true);
+        persist();
         render();
-        setSave(n + '명을 불러왔습니다.');
+        setSave('고객 ' + nC + '명, 상담 ' + nV + '건을 불러왔습니다.');
       } catch (e) {
         setSave('백업 파일을 읽지 못했습니다. 이 앱에서 저장한 .json 파일인지 확인해 주세요.', true);
       }
@@ -840,39 +1207,61 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   }
 
   /* ---------- events ---------- */
-  listEl.addEventListener('input', function (e) {
-    var f = e.target, r = f.closest && f.closest('.row');
+  function recOf(f) { return f.closest && f.closest('[data-id]'); }
+  mainEl.addEventListener('input', function (e) {
+    var f = e.target, r = recOf(f);
     if (!r || !f.dataset.f || f.tagName === 'SELECT') return;
     var patch = {}; patch[f.dataset.f] = f.value;
     if (f.tagName === 'TEXTAREA') autosize(f);
+    if (f.dataset.f === 'phone') setTel(r, f.value);
     save(r.dataset.id, patch, f.type === 'date');
   });
-  listEl.addEventListener('change', function (e) {
-    var f = e.target, r = f.closest && f.closest('.row');
+  mainEl.addEventListener('change', function (e) {
+    var f = e.target, r = recOf(f);
     if (!r || !f.dataset.f) return;
     if (f.dataset.f === 'status') {
       var v = f.value;
       r.dataset.status = v;
       save(r.dataset.id, { status: v, calledAt: v === 'none' ? '' : today() }, true);
+      render();
     } else flushAll();
   });
-  listEl.addEventListener('focusout', function () {
+  mainEl.addEventListener('focusout', function () {
     flushAll();
-    setTimeout(function () { if (!listEl.contains(document.activeElement)) render(); }, 0);
+    setTimeout(function () { if (!mainEl.contains(document.activeElement) || calEl.contains(document.activeElement)) render(); }, 0);
   });
-  listEl.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('.del');
-    if (!b) return;
-    var r = b.closest('.row');
-    if (b.dataset.arm === '1') { deleteCustomer(r.dataset.id); return; }
+  function arm(b, label, text, run) {
+    if (b.dataset.arm === '1') { run(); return; }
     b.dataset.arm = '1';
-    b.textContent = '삭제 확인';
-    setTimeout(function () { if (b.isConnected) { delete b.dataset.arm; b.textContent = '삭제'; } }, 3000);
+    b.textContent = text;
+    setTimeout(function () { if (b.isConnected && b.dataset.arm === '1') { delete b.dataset.arm; b.textContent = label; } }, 3000);
+  }
+  mainEl.addEventListener('click', function (e) {
+    var t = e.target;
+    var who = t.closest && t.closest('.who');
+    if (who) { openDetail(who.closest('.row').dataset.cid); return; }
+    var sb = t.closest && t.closest('.sum-btn');
+    if (sb) { openDetail(sb.closest('.row').dataset.id); return; }
+    var b = t.closest && t.closest('.del');
+    if (!b) return;
+    if (b === dtDel) {
+      var n = (index().vsBy.get(detailId) || []).length;
+      arm(b, '이 고객 삭제', n ? '상담 ' + n + '건도 함께 삭제 · 확인' : '삭제 확인', function () { delete b.dataset.arm; deleteRecord(detailId); window.scrollTo(0, 0); });
+      return;
+    }
+    var r = b.closest('.row');
+    arm(b, '삭제', '삭제 확인', function () { deleteRecord(r.dataset.id); });
+  });
+  $('#dtBack').addEventListener('click', closeDetail);
+  $('#dtAdd').addEventListener('click', function () {
+    var vid = addVisit(detailId, today());
+    pendingFocus = { id: vid, sel: '[data-f="note"]', dt: true };
+    render();
   });
   qEl.addEventListener('input', function () { query = qEl.value; render(); });
   vAll.addEventListener('click', function () { setView('all'); });
   vDate.addEventListener('click', function () { setView('date'); });
-  $('#add').addEventListener('click', addCustomer);
+  addBtn.addEventListener('click', onAdd);
   $('#bkExport').addEventListener('click', exportBackup);
   $('#csv').addEventListener('click', exportCsv);
   $('#bkImport').addEventListener('click', function () { fileEl.value = ''; fileEl.click(); });
@@ -880,12 +1269,12 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   window.addEventListener('pagehide', flushAll);
   document.addEventListener('visibilitychange', function () { if (document.hidden) flushAll(); });
   window.addEventListener('storage', function (e) {
-    if (e.key === KEY) { customers = loadAll(); render(); }
+    if (e.key === KEY) { customers = loadAll(); render(); if (!pk.el.hidden) renderPick(); }
   });
   var rz = null;
   window.addEventListener('resize', function () {
     clearTimeout(rz);
-    rz = setTimeout(function () { listEl.querySelectorAll('textarea').forEach(autosize); }, 150);
+    rz = setTimeout(function () { mainEl.querySelectorAll('textarea').forEach(autosize); }, 150);
   });
 
   /* ---------- start ---------- */
@@ -897,12 +1286,19 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   customers = loadAll();
   render();
 
-  /* 앱 포장(app-bridge.js)이 쓰는 연결 고리: 뒤로가기 버튼, 앱 종료 전 저장 */
+  /* 앱 포장(app-bridge.js)·동기화(sync.js)가 쓰는 연결 고리 */
   window.CRMApp = {
     flush: flushAll,
-    view: function () { return view; },
+    view: function () { return detailId ? 'detail' : view; },
     showAll: function () { setView('all'); },
-    reload: function () { customers = loadAll(); render(); }
+    /* 뒤로가기: 처리했으면 true */
+    back: function () {
+      if (!pk.el.hidden) { closePicker(); return true; }
+      if (detailId) { closeDetail(); return true; }
+      if (view === 'date') { setView('all'); return true; }
+      return false;
+    },
+    reload: function () { customers = loadAll(); render(); if (!pk.el.hidden) renderPick(); }
   };
 })();
 </script>
