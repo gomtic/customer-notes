@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob: data:">
+<title>고객 상담 노트</title>
+<!-- 아이폰 "홈 화면에 추가"용 -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="상담 노트">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f5f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#10141b" media="(prefers-color-scheme: dark)">
+<style>
+/* Standalone file: no network needed. Data is kept in this browser (localStorage); backup/export buttons move it elsewhere.
+   Layout: sticky header over either a ledger ("전체 고객") or a month calendar with the selected day's rows ("날짜별 연락").
+   Under 900px rows become cards and calendar cells show counts. */
+:root {
+  --bg: #f2f5f9;
+  --surface: #ffffff;
+  --surface-2: #f7f9fc;
+  --line: #dde3ec;
+  --fg: #18202c;
+  --muted: #5b6779;
+  --accent: #2748b5;
+  --accent-fg: #ffffff;
+  --ring: rgba(39, 72, 181, 0.28);
+  --danger: #b3261e;
+  --st-none-bg: #e9edf3;
+  --st-none-fg: #465366;
+  --st-done-bg: #d9f1e2;
+  --st-done-fg: #155a35;
+  --st-miss-bg: #fbe5cf;
+  --st-miss-fg: #84450a;
+  --font-body: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Noto Sans KR', 'Segoe UI', system-ui, sans-serif;
+  --font-num: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --cols: minmax(100px, 1fr) minmax(140px, 1.1fr) 120px minmax(200px, 3fr) 150px 58px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #10141b;
+    --surface: #171d27;
+    --surface-2: #1d2430;
+    --line: #2a3342;
+    --fg: #e7ecf4;
+    --muted: #9aa6ba;
+    --accent: #8aa4ff;
+    --accent-fg: #0e1424;
+    --ring: rgba(138, 164, 255, 0.35);
+    --danger: #ff8a80;
+    --st-none-bg: #263040;
+    --st-none-fg: #b2bdcf;
+    --st-done-bg: #17382a;
+    --st-done-fg: #86d9a9;
+    --st-miss-bg: #3d2b14;
+    --st-miss-fg: #f0b878;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0;
+  padding-block: 0 calc(48px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-text-size-adjust: 100%;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto;
+  height: env(safe-area-inset-top, 0px);
+  background: var(--bg);
+  z-index: 30;
+}
+[hidden] { display: none !important; }
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.top {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 20;
+  background: var(--bg);
+  padding-block: 14px 6px;
+}
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+.sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; }
+.save.err, .bk-info.warn { color: var(--danger); }
+.link { padding: 2px 0; border: 0; background: transparent; color: var(--accent); font-size: 13px; text-decoration: underline; text-underline-offset: 2px; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 380px; justify-content: flex-end; min-width: 0; }
+#q {
+  flex: 1 1 150px;
+  min-width: 0;
+  max-width: 260px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+#q:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.seg button { display: inline-flex; align-items: center; padding: 7px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.badge { margin-left: 6px; padding: 0 7px; border-radius: 999px; background: var(--danger); color: var(--surface); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.btn {
+  flex: none;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.heads {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 13px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.heads span { padding-left: 9px; }
+.heads2 { display: none; }
+body.v-date header .heads { display: none; }
+body.v-date .heads2 { display: grid; margin-top: 0; }
+
+/* calendar */
+.cal { margin-top: 8px; margin-bottom: 14px; }
+.cal-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.cal-title { min-width: 7.5em; text-align: center; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.nav { width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 18px; line-height: 1; }
+.mini-btn { padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.late-btn { margin-left: auto; border-color: var(--danger); color: var(--danger); font-weight: 600; }
+.late-btn[aria-pressed="true"] { background: var(--danger); color: var(--surface); }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.wd { padding: 6px 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.wd:first-child { color: var(--danger); }
+.day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  min-width: 0;
+  min-height: 98px;
+  padding: 5px 6px 6px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  text-align: left;
+}
+.day:nth-child(7n) { border-right: 0; }
+.day:hover { background: var(--surface-2); }
+.day.out { background: var(--surface-2); color: var(--muted); }
+.day.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dn { align-self: flex-start; display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 24px; padding: 0 4px; border-radius: 999px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.day.sun .dn { color: var(--danger); }
+.day.today .dn { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.day.late .dn { color: var(--danger); font-weight: 600; }
+.names { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pn {
+  display: block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--st-bg);
+  color: var(--st-fg);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pn.s-none { --st-bg: var(--st-none-bg); --st-fg: var(--st-none-fg); }
+.pn.s-done { --st-bg: var(--st-done-bg); --st-fg: var(--st-done-fg); text-decoration: line-through; }
+.pn.s-miss { --st-bg: var(--st-miss-bg); --st-fg: var(--st-miss-fg); }
+.more { padding-left: 6px; color: var(--muted); font-size: 11px; }
+.cnt { display: none; }
+
+.list { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.list:empty { display: none; }
+h2.grp {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 13px 8px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 600;
+}
+h2.grp .gc { color: var(--muted); font-size: 13px; font-weight: 400; }
+h2.grp.late { color: var(--danger); }
+h2.grp.today { color: var(--accent); }
+.row {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 8px;
+  align-items: start;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.list > .row:last-child { border-bottom: 0; }
+.row.dim { opacity: 0.6; }
+.row.dim:focus-within { opacity: 1; }
+.c { min-width: 0; }
+.cap { display: none; }
+.f {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  line-height: 1.45;
+}
+.f:hover { border-color: var(--line); }
+.f:focus { outline: none; border-color: var(--accent); background: var(--surface-2); box-shadow: 0 0 0 3px var(--ring); }
+.f::placeholder { color: var(--muted); opacity: 0.7; }
+textarea.f { resize: none; overflow: hidden; min-height: 34px; }
+.nm { font-weight: 600; }
+.num, input[type="date"].f { font-family: var(--font-num); font-size: 13px; }
+.phone-in { display: flex; align-items: center; gap: 4px; }
+.tel {
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: none;
+}
+.pill { position: relative; display: inline-block; }
+.pill::after { content: "▾"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--st-fg); font-size: 11px; pointer-events: none; }
+.pill select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 6px 28px 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--st-bg);
+  color: var(--st-fg);
+  font-weight: 600;
+}
+.row { --st-bg: var(--st-none-bg); --st-fg: var(--st-none-fg); }
+.row[data-status="done"] { --st-bg: var(--st-done-bg); --st-fg: var(--st-done-fg); }
+.row[data-status="miss"] { --st-bg: var(--st-miss-bg); --st-fg: var(--st-miss-fg); }
+.called { display: block; margin: 3px 0 0 4px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.act { display: flex; justify-content: flex-end; }
+.del { padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.del:hover { color: var(--danger); }
+.del[data-arm="1"] { background: var(--danger); color: var(--surface); font-weight: 600; }
+
+.state { margin-top: 20px; padding: 36px 20px; border: 1px dashed var(--line); border-radius: 12px; text-align: center; color: var(--muted); }
+.state h2 { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--fg); }
+.state p { margin: 0 auto 16px; max-width: 42ch; }
+
+@media (max-width: 899px) {
+  .heads, body.v-date .heads2 { display: none; }
+  .tools { flex-basis: 100%; justify-content: flex-start; }
+  #q { flex: 1 1 100%; max-width: none; }
+  .day { min-height: 54px; align-items: center; gap: 2px; padding: 4px 1px; }
+  .dn { align-self: center; }
+  .names { display: none; }
+  .cnt {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--st-none-bg);
+    color: var(--st-none-fg);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .cnt.late { background: var(--danger); color: var(--surface); }
+  .cnt.today { background: var(--accent); color: var(--accent-fg); }
+  .cnt.alldone { background: var(--st-done-bg); color: var(--st-done-fg); }
+  .list { display: grid; gap: 10px; background: transparent; border: 0; border-radius: 0; overflow: visible; }
+  h2.grp { padding: 8px 2px 0; background: transparent; border: 0; }
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "name call" "phone phone" "note note" "next act";
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+  }
+  .list > .row:last-child { border-bottom: 1px solid var(--line); }
+  .c.name { grid-area: name; }
+  .c.phone { grid-area: phone; }
+  .c.call { grid-area: call; justify-self: end; text-align: right; }
+  .c.note { grid-area: note; }
+  .c.next { grid-area: next; }
+  .c.act { grid-area: act; align-items: end; }
+  .cap { display: block; margin: 0 0 2px 2px; color: var(--muted); font-size: 12px; }
+  .c.name .cap, .c.call .cap { display: none; }
+  .f { font-size: 16px; border-color: var(--line); background: var(--surface-2); padding: 8px 10px; }
+  .num, input[type="date"].f { font-size: 15px; }
+  .nm { font-size: 17px; }
+  .pill select { font-size: 15px; padding: 8px 30px 8px 14px; }
+  .called { margin-right: 4px; }
+  .tel { padding: 7px 10px; font-size: 13px; }
+  .del { padding: 8px 10px; font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="bar">
+      <div>
+        <h1>고객 상담 노트</h1>
+        <p class="sub">
+          <span id="summary">불러오는 중…</span>
+          <span id="save" class="save" role="status" aria-live="polite"></span>
+        </p>
+        <p class="sub">
+          <button id="bkExport" class="link" type="button">백업 저장</button>
+          <button id="bkImport" class="link" type="button">백업 불러오기</button>
+          <button id="csv" class="link" type="button">엑셀로 저장</button>
+          <span id="bkInfo" class="bk-info"></span>
+        </p>
+        <input id="file" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div class="tools">
+        <input id="q" type="search" placeholder="이름·번호·상담내용 검색" autocomplete="off" aria-label="고객 검색">
+        <div class="seg" role="group" aria-label="보기 전환">
+          <button id="vAll" type="button" aria-pressed="true">전체 고객</button>
+          <button id="vDate" type="button" aria-pressed="false">날짜별 연락<span id="badge" class="badge" hidden></span></button>
+        </div>
+        <button id="add" class="btn" type="button">+ 고객 추가</button>
+      </div>
+    </div>
+    <div class="heads" aria-hidden="true">
+      <span>이름</span><span>연락처</span><span>통화</span><span>지난 상담내용</span><span>다음 연락</span><span></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="cal" class="cal" aria-label="연락 일정 달력" hidden></section>
+  <div class="heads heads2" aria-hidden="true">
+    <span>이름</span><span>연락처</span><span>통화</span><span>지난 상담내용</span><span>다음 연락</span><span></span>
+  </div>
+  <div id="list" class="list"></div>
+  <div id="state" class="state" hidden></div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+  var listEl = $('#list'), stateEl = $('#state'), calEl = $('#cal'), summaryEl = $('#summary'), saveEl = $('#save'), qEl = $('#q');
+  var vAll = $('#vAll'), vDate = $('#vDate'), badgeEl = $('#badge'), bkInfoEl = $('#bkInfo'), fileEl = $('#file');
+  var STATUS = { none: '미통화', done: '통화완료', miss: '부재중' };
+  var WD = ['일', '월', '화', '수', '목', '금', '토'];
+  var KEY = 'crm_customers_v1', KEY_BK = 'crm_last_backup', KEY_VIEW = 'crm_view';
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function ymd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function today() { return ymd(new Date()); }
+  function tomorrow() { var d = new Date(); d.setDate(d.getDate() + 1); return ymd(d); }
+  function md(s) {
+    var p = (s || '').split('-');
+    return p.length === 3 ? (+p[1]) + '/' + (+p[2]) : '';
+  }
+  function dlabel(k) {
+    var p = k.split('-');
+    var d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return (+p[1]) + '월 ' + (+p[2]) + '일 (' + WD[d.getDay()] + ')';
+  }
+  function shiftMonth(key, delta) {
+    var p = key.split('-');
+    return ymd(new Date(+p[0], +p[1] - 1 + delta, 1)).slice(0, 7);
+  }
+  function autosize(ta) {
+    ta.style.height = 'auto';
+    ta.style.height = Math.max(ta.scrollHeight + 2, 34) + 'px';
+  }
+  function norm(d) {
+    return Object.assign({ name: '', phone: '', status: 'none', calledAt: '', note: '', nextDate: '', createdAt: 0 }, d || {});
+  }
+  function byName(a, b) { return (a.name || '￿').localeCompare(b.name || '￿', 'ko'); }
+  function newId() { return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  var storageOk = true;
+  try { localStorage.setItem('crm_probe', '1'); localStorage.removeItem('crm_probe'); } catch (e) { storageOk = false; }
+
+  var customers = new Map();
+  var rows = new Map();
+  var heads = new Map();
+  var query = '';
+  var view = lsGet(KEY_VIEW) === 'date' ? 'date' : 'all';
+  var sel = today();
+  var monthKey = sel.slice(0, 7);
+  var calSig = '';
+  var pendingFocus = null;
+  var saveTimer = null, persistTimer = null, persistAsked = false;
+
+  /* ---------- storage ---------- */
+  function loadAll() {
+    var m = new Map();
+    try {
+      var raw = localStorage.getItem(KEY);
+      var o = raw ? JSON.parse(raw) : {};
+      Object.keys(o).forEach(function (id) { if (o[id] && typeof o[id] === 'object') m.set(id, o[id]); });
+    } catch (e) { /* empty */ }
+    return m;
+  }
+  function setSave(text, err, ms) {
+    saveEl.textContent = text;
+    saveEl.className = 'save' + (err ? ' err' : '');
+    clearTimeout(saveTimer);
+    if (!err && text) saveTimer = setTimeout(function () { saveEl.textContent = storageOk ? '' : warnNoStorage; }, ms || 2500);
+  }
+  var warnNoStorage = '';
+  function persist() {
+    clearTimeout(persistTimer);
+    persistTimer = null;
+    var obj = {};
+    customers.forEach(function (d, id) { obj[id] = d; });
+    if (lsSet(KEY, JSON.stringify(obj))) {
+      setSave('저장됨');
+      if (!persistAsked && navigator.storage && navigator.storage.persist) {
+        persistAsked = true;
+        try { navigator.storage.persist(); } catch (e) { /* ignore */ }
+      }
+    } else {
+      setSave('저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.', true);
+    }
+  }
+  function queuePersist(now) {
+    clearTimeout(persistTimer);
+    setSave('저장 중…');
+    persistTimer = setTimeout(persist, now ? 0 : 400);
+  }
+  function flushAll() { if (persistTimer) persist(); }
+  function save(id, patch, now) {
+    var cur = customers.get(id);
+    if (!cur) return;
+    customers.set(id, Object.assign({}, cur, patch, { updatedAt: Date.now() }));
+    queuePersist(now);
+  }
+
+  /* ---------- rows ---------- */
+  var TPL = document.createElement('template');
+  TPL.innerHTML =
+    '<article class="row">' +
+    '<div class="c name"><span class="cap">이름</span><input class="f nm" data-f="name" placeholder="이름" autocomplete="off" aria-label="이름"></div>' +
+    '<div class="c phone"><span class="cap">연락처</span><div class="phone-in"><input class="f num" data-f="phone" type="text" inputmode="tel" placeholder="010-0000-0000" autocomplete="off" aria-label="연락처"><a class="tel" href="#" hidden>전화</a></div></div>' +
+    '<div class="c call"><span class="cap">통화</span><span class="pill"><select data-f="status" aria-label="통화 여부"><option value="none">미통화</option><option value="done">통화완료</option><option value="miss">부재중</option></select></span><span class="called"></span></div>' +
+    '<div class="c note"><span class="cap">지난 상담내용</span><textarea class="f" data-f="note" rows="2" placeholder="지난 상담 내용을 적어두세요" aria-label="지난 상담내용"></textarea></div>' +
+    '<div class="c next"><span class="cap">다음 연락</span><input class="f" data-f="nextDate" type="date" aria-label="다음 연락일"></div>' +
+    '<div class="c act"><button class="del" type="button" aria-label="고객 삭제">삭제</button></div>' +
+    '</article>';
+
+  function makeRow(id) {
+    var r = TPL.content.firstElementChild.cloneNode(true);
+    r.dataset.id = id;
+    r.querySelectorAll('[data-f]').forEach(function (f) { f.id = 'f-' + f.dataset.f + '-' + id; });
+    return r;
+  }
+  function fill(r, c) {
+    var active = document.activeElement;
+    r.dataset.status = STATUS[c.status] ? c.status : 'none';
+    r.classList.toggle('dim', view === 'date' && c.status === 'done');
+    r.querySelectorAll('[data-f]').forEach(function (f) {
+      if (f === active) return;
+      var v = c[f.dataset.f] == null ? '' : String(c[f.dataset.f]);
+      if (f.value !== v) { f.value = v; if (f.tagName === 'TEXTAREA') autosize(f); }
+    });
+    r.querySelector('.called').textContent = c.calledAt && c.status !== 'none' ? md(c.calledAt) + ' 통화' : '';
+    var tel = r.querySelector('.tel');
+    var num = String(c.phone || '').replace(/[^\d+]/g, '');
+    tel.hidden = !num;
+    if (num) tel.href = 'tel:' + num;
+  }
+  function headFor(key, text, count, cls) {
+    var h = heads.get(key);
+    if (!h) {
+      h = el('h2', 'grp');
+      h.append(el('span', 'gd'), el('span', 'gc'));
+      heads.set(key, h);
+    }
+    h.className = 'grp' + (cls ? ' ' + cls : '');
+    h.firstChild.textContent = text;
+    h.lastChild.textContent = count + '명';
+    return h;
+  }
+  function relOf(k, open, t, tm) {
+    if (k < t) return { rel: open ? '기한 지남' : '지난 연락', cls: open ? 'late' : '' };
+    if (k === t) return { rel: '오늘', cls: 'today' };
+    if (k === tm) return { rel: '내일', cls: '' };
+    return { rel: '', cls: '' };
+  }
+
+  /* ---------- calendar ---------- */
+  function renderCal(byDay, t, lateN) {
+    var days = {};
+    Object.keys(byDay).forEach(function (k) {
+      days[k] = byDay[k].slice().sort(byName).map(function (c) { return [c.name, c.status]; });
+    });
+    var sig = JSON.stringify([monthKey, sel, t, lateN, days]);
+    if (sig === calSig) return;
+    calSig = sig;
+    var ad = document.activeElement;
+    var keepKey = ad && calEl.contains(ad) ? ad.getAttribute('data-fk') : null;
+    calEl.replaceChildren();
+
+    var bar = el('div', 'cal-bar');
+    var prev = el('button', 'nav', '‹'); prev.type = 'button'; prev.setAttribute('aria-label', '이전 달'); prev.setAttribute('data-fk', 'prev');
+    prev.onclick = function () { monthKey = shiftMonth(monthKey, -1); render(); };
+    var next = el('button', 'nav', '›'); next.type = 'button'; next.setAttribute('aria-label', '다음 달'); next.setAttribute('data-fk', 'next');
+    next.onclick = function () { monthKey = shiftMonth(monthKey, 1); render(); };
+    var mp = monthKey.split('-');
+    var title = el('span', 'cal-title', mp[0] + '년 ' + (+mp[1]) + '월');
+    var todayBtn = el('button', 'mini-btn', '오늘'); todayBtn.type = 'button'; todayBtn.setAttribute('data-fk', 'today');
+    todayBtn.onclick = function () { sel = t; monthKey = t.slice(0, 7); render(); };
+    bar.append(prev, title, next, todayBtn);
+    if (lateN) {
+      var lb = el('button', 'mini-btn late-btn', '기한 지남 ' + lateN + '명'); lb.type = 'button'; lb.setAttribute('data-fk', 'late');
+      lb.setAttribute('aria-pressed', String(sel === 'late'));
+      lb.onclick = function () { sel = sel === 'late' ? t : 'late'; render(); };
+      bar.append(lb);
+    }
+
+    var grid = el('div', 'grid');
+    WD.forEach(function (w) { grid.append(el('div', 'wd', w)); });
+    var first = new Date(+mp[0], +mp[1] - 1, 1);
+    var offset = first.getDay();
+    var total = Math.ceil((offset + new Date(+mp[0], +mp[1], 0).getDate()) / 7) * 7;
+    for (var i = 0; i < total; i++) {
+      var d = new Date(+mp[0], +mp[1] - 1, 1 - offset + i);
+      var k = ymd(d);
+      var list = days[k] || [];
+      var open = list.some(function (x) { return x[1] !== 'done'; });
+      var b = el('button', 'day');
+      b.type = 'button';
+      b.setAttribute('data-fk', 'd:' + k);
+      b.setAttribute('aria-label', dlabel(k) + (list.length ? ', ' + list.length + '명' : ', 연락 없음'));
+      b.setAttribute('aria-pressed', String(sel === k));
+      if (k.slice(0, 7) !== monthKey) b.classList.add('out');
+      if (d.getDay() === 0) b.classList.add('sun');
+      if (k === t) b.classList.add('today');
+      if (k === sel) b.classList.add('sel');
+      if (k < t && open) b.classList.add('late');
+      b.append(el('span', 'dn', String(d.getDate())));
+      if (list.length) {
+        var cnt = el('span', 'cnt', String(list.length));
+        if (!open) cnt.classList.add('alldone');
+        else if (k < t) cnt.classList.add('late');
+        else if (k === t) cnt.classList.add('today');
+        b.append(cnt);
+        var names = el('span', 'names');
+        list.slice(0, 3).forEach(function (x) {
+          names.append(el('span', 'pn s-' + (STATUS[x[1]] ? x[1] : 'none'), x[0] || '(이름 없음)'));
+        });
+        if (list.length > 3) names.append(el('span', 'more', '+' + (list.length - 3) + '명'));
+        b.append(names);
+      }
+      (function (key) {
+        b.onclick = function () { sel = key; monthKey = key.slice(0, 7); render(); };
+      })(k);
+      grid.append(b);
+    }
+    calEl.append(bar, grid);
+    if (keepKey) {
+      var again = calEl.querySelector('[data-fk="' + keepKey + '"]');
+      if (again) again.focus();
+    }
+  }
+
+  /* ---------- state + render ---------- */
+  function showState(kind) {
+    if (!kind) { stateEl.hidden = true; return; }
+    stateEl.hidden = false;
+    stateEl.replaceChildren();
+    var h = el('h2'), p = el('p'), b = null;
+    if (kind === 'empty') {
+      h.textContent = '아직 고객이 없습니다'; p.textContent = '고객을 추가하면 이름, 연락처, 통화 여부, 지난 상담내용이 한 줄에 보입니다. 다른 곳에서 쓰던 백업 파일이 있으면 위의 "백업 불러오기"로 가져올 수 있습니다.';
+      b = el('button', 'btn', '+ 고객 추가'); b.type = 'button'; b.onclick = addCustomer;
+    } else if (kind === 'dayempty') {
+      h.textContent = '이 날은 연락 예정이 없습니다';
+      p.textContent = '+ 고객 추가를 누르면 이 날짜로 등록됩니다. 전체 고객에서 기존 고객의 "다음 연락"을 이 날짜로 정해도 됩니다.';
+      b = el('button', 'btn', '+ 고객 추가'); b.type = 'button'; b.onclick = addCustomer;
+    } else if (kind === 'nomatch') { h.textContent = '검색 결과가 없습니다'; p.textContent = '검색어를 바꿔 보세요.'; }
+    stateEl.append(h, p);
+    if (b) stateEl.append(b);
+  }
+
+  function updateBackupInfo() {
+    var last = lsGet(KEY_BK);
+    var warn = false, text = '';
+    if (customers.size) {
+      if (!last) { text = '아직 백업하지 않았습니다'; warn = true; }
+      else {
+        var days = Math.floor((new Date(today() + 'T00:00:00') - new Date(last + 'T00:00:00')) / 86400000);
+        text = '마지막 백업 ' + md(last);
+        if (days >= 14) { text += ' (' + days + '일 전)'; warn = true; }
+      }
+    }
+    bkInfoEl.textContent = text;
+    bkInfoEl.className = 'bk-info' + (warn ? ' warn' : '');
+  }
+
+  function render() {
+    vAll.setAttribute('aria-pressed', String(view === 'all'));
+    vDate.setAttribute('aria-pressed', String(view === 'date'));
+    document.body.classList.toggle('v-date', view === 'date');
+    var t = today(), tm = tomorrow();
+    var q = query.trim().toLowerCase();
+    var digits = q.replace(/\D/g, '');
+    var all = [], matched = [], nNone = 0, nToday = 0, nLate = 0, nNoDate = 0;
+    customers.forEach(function (d, id) {
+      var c = norm(d); c.id = id;
+      c.phone = String(c.phone || ''); c.name = String(c.name || ''); c.note = String(c.note || '');
+      all.push(c);
+      if (c.status === 'none') nNone++;
+      if (c.status !== 'done') {
+        if (!c.nextDate) nNoDate++;
+        else if (c.nextDate < t) nLate++;
+        else if (c.nextDate === t) nToday++;
+      }
+      if (!q) { matched.push(c); return; }
+      var hay = (c.name + '\n' + c.phone + '\n' + c.note).toLowerCase();
+      if (hay.indexOf(q) >= 0 || (digits.length >= 3 && c.phone.replace(/\D/g, '').indexOf(digits) >= 0)) matched.push(c);
+    });
+    badgeEl.hidden = !(nToday + nLate);
+    badgeEl.textContent = String(nToday + nLate);
+    summaryEl.textContent = view === 'all'
+      ? '총 ' + all.length + '명 · 미통화 ' + nNone + '명'
+      : '오늘 연락 ' + nToday + '명 · 기한 지남 ' + nLate + '명 · 날짜 미정 ' + nNoDate + '명';
+    updateBackupInfo();
+
+    var order = [], fresh = [], shown = 0;
+    var rowFor = function (c) {
+      var r = rows.get(c.id);
+      if (!r) { r = makeRow(c.id); rows.set(c.id, r); fresh.push(r); }
+      fill(r, c);
+      order.push(r);
+      shown++;
+    };
+
+    if (view === 'all') {
+      calEl.hidden = true;
+      matched.sort(function (a, b) { return b.createdAt - a.createdAt; });
+      matched.forEach(rowFor);
+    } else {
+      var byDay = {};
+      matched.forEach(function (c) { if (c.nextDate) (byDay[c.nextDate] = byDay[c.nextDate] || []).push(c); });
+      var lateN = 0;
+      Object.keys(byDay).forEach(function (k) {
+        if (k < t) byDay[k].forEach(function (c) { if (c.status !== 'done') lateN++; });
+      });
+      if (sel === 'late' && !lateN) sel = t;
+      calEl.hidden = !all.length;
+      if (all.length) renderCal(byDay, t, lateN);
+      if (sel === 'late') {
+        Object.keys(byDay).filter(function (k) { return k < t; }).sort().forEach(function (k) {
+          var g = byDay[k].filter(function (c) { return c.status !== 'done'; }).sort(byName);
+          if (!g.length) return;
+          order.push(headFor(k, '기한 지남 · ' + dlabel(k), g.length, 'late'));
+          g.forEach(rowFor);
+        });
+      } else {
+        var g2 = (byDay[sel] || []).slice().sort(byName);
+        if (g2.length) {
+          var open = g2.some(function (c) { return c.status !== 'done'; });
+          var rr = relOf(sel, open, t, tm);
+          order.push(headFor(sel, (rr.rel ? rr.rel + ' · ' : '') + dlabel(sel), g2.length, rr.cls));
+          g2.forEach(rowFor);
+        }
+      }
+    }
+
+    var keepSet = new Set(order);
+    Array.prototype.slice.call(listEl.children).forEach(function (n) { if (!keepSet.has(n)) n.remove(); });
+    rows.forEach(function (r, id) { if (!keepSet.has(r)) rows.delete(id); });
+    heads.forEach(function (h, k) { if (!keepSet.has(h)) heads.delete(k); });
+    var activeRow = document.activeElement && document.activeElement.closest ? document.activeElement.closest('.row') : null;
+    var prev = null;
+    order.forEach(function (n) {
+      if (n !== activeRow) {
+        var want = prev ? prev.nextSibling : listEl.firstChild;
+        if (n !== want) listEl.insertBefore(n, want);
+      }
+      prev = n;
+    });
+    fresh.forEach(function (r) { r.querySelectorAll('textarea').forEach(autosize); });
+
+    if (!all.length) showState('empty');
+    else if (!shown) showState(view === 'date' && !q ? 'dayempty' : 'nomatch');
+    else showState(null);
+
+    if (pendingFocus && rows.has(pendingFocus)) {
+      var nm = rows.get(pendingFocus).querySelector('[data-f="name"]');
+      pendingFocus = null;
+      nm.focus();
+      nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }
+
+  function setView(v) {
+    view = v;
+    lsSet(KEY_VIEW, v);
+    if (v === 'date') { sel = today(); monthKey = sel.slice(0, 7); }
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- actions ---------- */
+  function addCustomer() {
+    query = ''; qEl.value = '';
+    var nd = '';
+    if (view === 'date') {
+      if (sel === 'late') { sel = today(); monthKey = sel.slice(0, 7); }
+      nd = sel;
+    }
+    var id = newId();
+    var now = Date.now();
+    customers.set(id, { name: '', phone: '', status: 'none', calledAt: '', note: '', nextDate: nd, createdAt: now, updatedAt: now });
+    pendingFocus = id;
+    queuePersist(true);
+    render();
+  }
+  function deleteCustomer(id) {
+    customers.delete(id);
+    queuePersist(true);
+    render();
+  }
+
+  /* ---------- backup / export ---------- */
+  /* 앱(안드로이드/윈도우)에서는 app-bridge.js의 AppFiles.save로 실제 파일을 저장하고, 저장 위치를 done(위치)로 알려준다.
+     일반 브라우저에서는 예전처럼 다운로드한다. done(null) = 위치를 알 수 없음, 취소하면 done을 부르지 않는다. */
+  function download(name, text, type, done) {
+    if (window.AppFiles) {
+      setSave('저장 중…');
+      window.AppFiles.save(name, text, type).then(function (where) {
+        if (where) done(where); else setSave('');
+      }, function (e) {
+        setSave('파일을 저장하지 못했습니다. ' + (e && e.message ? e.message : ''), true);
+      });
+      return;
+    }
+    done(null);
+    var blob = new Blob([text], { type: type });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.append(a);
+    a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  }
+  function exportBackup() {
+    var obj = {};
+    customers.forEach(function (d, id) { obj[id] = d; });
+    var payload = { app: 'customer-notes', version: 1, exportedAt: new Date().toISOString(), customers: obj };
+    download('customer-notes-backup-' + today() + '.json', JSON.stringify(payload, null, 1), 'application/json', function (where) {
+      lsSet(KEY_BK, today());
+      updateBackupInfo();
+      setSave(where ? '백업 파일을 저장했습니다. 저장 위치: ' + where : '백업 파일을 저장했습니다. 다운로드 폴더를 확인하세요.', false, where ? 12000 : 0);
+    });
+  }
+  function csvCell(v, guard) {
+    var s = String(v == null ? '' : v);
+    if (guard && /^[=+\-@]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  function exportCsv() {
+    var lines = [['이름', '연락처', '통화 여부', '최근 통화일', '다음 연락', '지난 상담내용'].map(function (h) { return csvCell(h); }).join(',')];
+    var list = [];
+    customers.forEach(function (d, id) { list.push(norm(d)); });
+    list.sort(function (a, b) { return b.createdAt - a.createdAt; });
+    list.forEach(function (c) {
+      lines.push([csvCell(c.name, true), csvCell(c.phone), csvCell(STATUS[c.status] || STATUS.none), csvCell(c.calledAt), csvCell(c.nextDate), csvCell(c.note, true)].join(','));
+    });
+    download('customer-notes-' + today() + '.csv', '﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', function (where) {
+      setSave(where ? '엑셀용 CSV 파일을 저장했습니다. 저장 위치: ' + where : '엑셀용 CSV 파일을 저장했습니다.', false, where ? 12000 : 0);
+    });
+  }
+  function importBackup(file) {
+    if (!file) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var data = JSON.parse(String(rd.result));
+        var src = data && typeof data.customers === 'object' && data.customers ? data.customers : null;
+        if (!src) throw new Error('bad');
+        var n = 0;
+        Object.keys(src).forEach(function (id) {
+          if (src[id] && typeof src[id] === 'object') { customers.set(id, norm(src[id])); n++; }
+        });
+        queuePersist(true);
+        render();
+        setSave(n + '명을 불러왔습니다.');
+      } catch (e) {
+        setSave('백업 파일을 읽지 못했습니다. 이 앱에서 저장한 .json 파일인지 확인해 주세요.', true);
+      }
+    };
+    rd.onerror = function () { setSave('파일을 읽지 못했습니다.', true); };
+    rd.readAsText(file);
+  }
+
+  /* ---------- events ---------- */
+  listEl.addEventListener('input', function (e) {
+    var f = e.target, r = f.closest && f.closest('.row');
+    if (!r || !f.dataset.f || f.tagName === 'SELECT') return;
+    var patch = {}; patch[f.dataset.f] = f.value;
+    if (f.tagName === 'TEXTAREA') autosize(f);
+    save(r.dataset.id, patch, f.type === 'date');
+  });
+  listEl.addEventListener('change', function (e) {
+    var f = e.target, r = f.closest && f.closest('.row');
+    if (!r || !f.dataset.f) return;
+    if (f.dataset.f === 'status') {
+      var v = f.value;
+      r.dataset.status = v;
+      save(r.dataset.id, { status: v, calledAt: v === 'none' ? '' : today() }, true);
+    } else flushAll();
+  });
+  listEl.addEventListener('focusout', function () {
+    flushAll();
+    setTimeout(function () { if (!listEl.contains(document.activeElement)) render(); }, 0);
+  });
+  listEl.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.del');
+    if (!b) return;
+    var r = b.closest('.row');
+    if (b.dataset.arm === '1') { deleteCustomer(r.dataset.id); return; }
+    b.dataset.arm = '1';
+    b.textContent = '삭제 확인';
+    setTimeout(function () { if (b.isConnected) { delete b.dataset.arm; b.textContent = '삭제'; } }, 3000);
+  });
+  qEl.addEventListener('input', function () { query = qEl.value; render(); });
+  vAll.addEventListener('click', function () { setView('all'); });
+  vDate.addEventListener('click', function () { setView('date'); });
+  $('#add').addEventListener('click', addCustomer);
+  $('#bkExport').addEventListener('click', exportBackup);
+  $('#csv').addEventListener('click', exportCsv);
+  $('#bkImport').addEventListener('click', function () { fileEl.value = ''; fileEl.click(); });
+  fileEl.addEventListener('change', function () { importBackup(fileEl.files && fileEl.files[0]); });
+  window.addEventListener('pagehide', flushAll);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) flushAll(); });
+  window.addEventListener('storage', function (e) {
+    if (e.key === KEY) { customers = loadAll(); render(); }
+  });
+  var rz = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rz);
+    rz = setTimeout(function () { listEl.querySelectorAll('textarea').forEach(autosize); }, 150);
+  });
+
+  /* ---------- start ---------- */
+  if (!storageOk) {
+    warnNoStorage = '이 브라우저는 저장이 막혀 있어 창을 닫으면 내용이 사라집니다. 일반(비공개 아님) 창에서 열어 주세요.';
+    saveEl.textContent = warnNoStorage;
+    saveEl.className = 'save err';
+  }
+  customers = loadAll();
+  render();
+
+  /* 앱 포장(app-bridge.js)이 쓰는 연결 고리: 뒤로가기 버튼, 앱 종료 전 저장 */
+  window.CRMApp = {
+    flush: flushAll,
+    view: function () { return view; },
+    showAll: function () { setView('all'); }
+  };
+})();
+</script>
+<script src="app-bridge.js"></script>
+</body>
+</html>
