@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob: data:">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' blob: data: https://*.supabase.co">
 <title>고객 상담 노트</title>
 <!-- 아이폰 "홈 화면에 추가"용 -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -901,10 +901,13 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   window.CRMApp = {
     flush: flushAll,
     view: function () { return view; },
-    showAll: function () { setView('all'); }
+    showAll: function () { setView('all'); },
+    reload: function () { customers = loadAll(); render(); }
   };
 })();
 </script>
 <script src="app-bridge.js"></script>
+<script src="sync-config.js"></script>
+<script src="sync.js"></script>
 </body>
 </html>
