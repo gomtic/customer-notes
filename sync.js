@@ -102,7 +102,7 @@
       method: 'POST', headers: { apikey: CFG.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body)
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (j) {
-        if (!res.ok) throw new Error(koError(j));
+        if (!res.ok) { var e = new Error(koError(j)); e.status = res.status; e.code = String(j.error_code || j.code || j.error || ''); throw e; }
         return j;
       });
     }, function () { throw new Error('인터넷에 연결되어 있지 않습니다.'); });
@@ -123,17 +123,35 @@
       return keepSession(r);
     });
   }
-  function token() {
+  // 로그인 유지: 출입증(access token)은 1시간마다 바뀌고, 갱신용 열쇠(refresh token)로 자동으로 새로 받는다.
+  // 서버가 "이 열쇠는 더 이상 쓸 수 없다"고 분명히 답할 때만 로그아웃하고,
+  // 인터넷 끊김·서버 일시 오류·요청 많음일 때는 로그인을 그대로 두고 다음에 다시 시도한다.
+  var refreshing = null;
+  function refresh() {
+    if (refreshing) return refreshing; // 동시에 두 번 갱신하지 않기(열쇠가 1회용이라 겹치면 무효가 될 수 있음)
     var s = session();
     if (!s) return Promise.reject(new Error('nologin'));
-    if (s.expires_at - Date.now() > 60000) return Promise.resolve(s.access_token);
-    return authFetch('token?grant_type=refresh_token', { refresh_token: s.refresh_token }).then(function (r) {
+    refreshing = authFetch('token?grant_type=refresh_token', { refresh_token: s.refresh_token }).then(function (r) {
       return keepSession(r).access_token;
     }, function (e) {
-      if (/인터넷/.test(e.message)) throw e;
-      lsDel(K_SESSION); // 로그인이 만료됨
-      throw new Error('nologin');
-    });
+      var dead = (e.status === 400 || e.status === 401 || e.status === 403) &&
+        !/rate|limit|timeout|unexpected_failure/i.test(e.code + ' ' + e.message);
+      if (dead) {
+        // 다른 탭/창이 방금 열쇠를 바꿔 두었을 수 있으니 한 번 더 확인
+        var now = session();
+        if (now && now.refresh_token !== s.refresh_token) return now.access_token;
+        lsDel(K_SESSION);
+        throw new Error('nologin');
+      }
+      throw new Error('offline'); // 일시적인 문제: 로그인 유지
+    }).then(function (t) { refreshing = null; return t; }, function (e) { refreshing = null; throw e; });
+    return refreshing;
+  }
+  function token(force) {
+    var s = session();
+    if (!s) return Promise.reject(new Error('nologin'));
+    if (!force && s.expires_at - Date.now() > 5 * 60000) return Promise.resolve(s.access_token);
+    return refresh();
   }
   function logout() {
     var s = session();
@@ -143,21 +161,25 @@
   }
 
   /* ---------- 클라우드와 주고받기 ---------- */
-  function api(method, query, body, tok, prefer) {
-    var h = { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' };
-    if (prefer) h.Prefer = prefer;
-    return fetch(BASE + '/rest/v1/customers' + query, { method: method, headers: h, body: body ? JSON.stringify(body) : undefined })
-      .then(function (res) {
-        if (res.status === 401) { lsDel(K_SESSION); throw new Error('nologin'); }
-        if (!res.ok) return res.text().then(function (t) { throw new Error('서버 오류 ' + res.status + ' ' + t.slice(0, 120)); });
-        return res.status === 204 || method !== 'GET' ? null : res.json();
-      }, function () { throw new Error('offline'); });
+  function api(method, query, body, prefer, retried) {
+    return token(retried).then(function (tok) {
+      var h = { apikey: CFG.key, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json' };
+      if (prefer) h.Prefer = prefer;
+      return fetch(BASE + '/rest/v1/customers' + query, { method: method, headers: h, body: body ? JSON.stringify(body) : undefined })
+        .then(function (res) {
+          // 출입증이 만료됐다고 하면 로그아웃하지 않고, 새 출입증을 받아 한 번 더 시도
+          if (res.status === 401 && !retried) return api(method, query, body, prefer, true);
+          if (res.status === 401) throw new Error('offline'); // 그래도 안 되면 다음 동기화 때 다시 시도(로그인 유지)
+          if (!res.ok) return res.text().then(function (t) { throw new Error('서버 오류 ' + res.status + ' ' + t.slice(0, 120)); });
+          return res.status === 204 || method !== 'GET' ? null : res.json();
+        }, function () { throw new Error('offline'); });
+    });
   }
-  function pullAll(tok, cursor, acc) {
+  function pullAll(cursor, acc) {
     var q = '?select=id,data,updated_at,deleted,server_ts&order=server_ts.asc&limit=1000' + (cursor ? '&server_ts=gt.' + encodeURIComponent(cursor) : '');
-    return api('GET', q, null, tok).then(function (rows) {
+    return api('GET', q, null).then(function (rows) {
       acc = acc.concat(rows);
-      if (rows.length === 1000) return pullAll(tok, rows[rows.length - 1].server_ts, acc);
+      if (rows.length === 1000) return pullAll(rows[rows.length - 1].server_ts, acc);
       return acc;
     });
   }
@@ -171,11 +193,7 @@
     if (running) { again = true; return; }
     running = true;
     showStatus('동기화 중…', false);
-    var tok;
-    token().then(function (t) {
-      tok = t;
-      return pullAll(tok, lsGet(K_CURSOR), []);
-    }).then(function (remote) {
+    pullAll(lsGet(K_CURSOR), []).then(function (remote) {
       // 여기부터는 한 번에(중간에 입력이 끼어들지 않게) 합친다
       if (window.CRMApp) window.CRMApp.flush();
       var local = jget(KEY, {}), known = jget(K_KNOWN, {}), changed = false, cursor = lsGet(K_CURSOR);
@@ -204,7 +222,7 @@
       if (changed) { jset(KEY, local); if (window.CRMApp) window.CRMApp.reload(); }
       jset(K_KNOWN, known);
       if (cursor) lsSet(K_CURSOR, cursor);
-      return pushBatches(tok, push, 0, known);
+      return pushBatches(push, 0);
     }).then(function () {
       lsSet(K_LAST, String(Date.now()));
       var s = session();
@@ -213,21 +231,21 @@
       if (e.message === 'nologin') { showStatus('동기화: 다시 로그인해 주세요', true); openLogin('로그인이 만료되었습니다. 다시 로그인해 주세요.'); }
       else if (e.message === 'offline' || /인터넷/.test(e.message)) {
         var last = Number(lsGet(K_LAST));
-        showStatus('인터넷 연결 안 됨 · 이 기기에 저장됨' + (last ? ' (마지막 동기화 ' + hhmm(last) + ')' : ''), false);
+        showStatus('연결 대기 중 · 이 기기에 저장됨' + (last ? ' (마지막 동기화 ' + hhmm(last) + ')' : ''), false);
       } else showStatus('동기화 실패: ' + e.message, true);
     }).then(function () {
       running = false;
       if (again) { again = false; schedule(500); }
     });
   }
-  function pushBatches(tok, list, i, known) {
+  function pushBatches(list, i) {
     if (i >= list.length) return Promise.resolve();
     var part = list.slice(i, i + 200);
-    return api('POST', '?on_conflict=user_id,id', part, tok, 'resolution=merge-duplicates,return=minimal').then(function () {
+    return api('POST', '?on_conflict=user_id,id', part, 'resolution=merge-duplicates,return=minimal').then(function () {
       var k = jget(K_KNOWN, {});
       part.forEach(function (p) { if (p.deleted) delete k[p.id]; else k[p.id] = p.updated_at; });
       jset(K_KNOWN, k);
-      return pushBatches(tok, list, i + 200, known);
+      return pushBatches(list, i + 200);
     });
   }
 
