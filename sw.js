@@ -2,7 +2,7 @@
    처음 한 번 열 때 화면 파일을 폰에 보관해 두고, 그 뒤로는 인터넷 없이 보관본으로 엽니다.
    인터넷이 될 때는 몰래 새 버전을 받아 두었다가, 다음에 앱을 열 때 적용합니다.
    고객 데이터는 여기서 다루지 않습니다(데이터는 폰 안의 저장소에만 있고 어디로도 보내지 않음). */
-var VERSION = '1.1.1-1795432185294';
+var VERSION = '1.2.0-1795438640016';
 var CACHE = 'customer-notes-' + VERSION;
 var FILES = ['./', './index.html', './app-bridge.js', './sync-config.js', './sync.js','./manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
