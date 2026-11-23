@@ -70,7 +70,7 @@
   App.addListener('backButton', function () {
     var a = document.activeElement;
     if (a && a !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) { a.blur(); return; }
-    if (window.CRMApp && window.CRMApp.view() === 'date') { window.CRMApp.showAll(); return; }
+    if (window.CRMApp && window.CRMApp.back && window.CRMApp.back()) return;
     if (window.CRMApp) window.CRMApp.flush();
     App.minimizeApp();
   });
