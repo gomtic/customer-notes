@@ -201,10 +201,7 @@ h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
 .dlg-btns { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .btn:disabled { opacity: 0.5; cursor: default; }
 
-/* 하루 끝 알림 */
-.banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 8px 0 4px; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); }
-.bn-t { font-weight: 600; }
-.bn-b { display: flex; gap: 8px; }
+.rp-make { flex: none; border-color: var(--accent); color: var(--accent); font-weight: 600; white-space: nowrap; }
 
 /* 일자별 리포트 */
 .report { margin-top: 8px; }
@@ -482,6 +479,7 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
           <button id="vAll" type="button" aria-pressed="true">고객 정보</button>
           <button id="vDate" type="button" aria-pressed="false">날짜별 연락<span id="badge" class="badge" hidden></span></button>
         </div>
+        <button id="rpMake" class="mini-btn rp-make" type="button">리포트 만들기</button>
         <button id="add" class="btn" type="button">+ 고객 추가</button>
       </div>
     </div>
@@ -492,10 +490,6 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
 </header>
 
 <main id="main" class="wrap">
-  <div id="banner" class="banner" role="status" hidden>
-    <span id="bnText" class="bn-t"></span>
-    <span class="bn-b"><button id="bnOpen" class="btn" type="button">리포트 보기</button><button id="bnClose" class="mini-btn" type="button">닫기</button></span>
-  </div>
   <section id="report" class="report" aria-label="상담 리포트" hidden>
     <div class="rp-tools"><button id="rpBack" class="mini-btn" type="button">‹ 돌아가기</button><button id="rpPrint" class="btn" type="button">인쇄 / PDF 저장</button></div>
     <div id="rpBody" class="rp"></div>
@@ -552,8 +546,8 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   var detailEl = $('#detail'), dtCard = $('#dtCard'), dtList = $('#dtList'), dtCount = $('#dtCount'), dtEmpty = $('#dtEmpty'), dtDel = $('#dtDel');
   var STATUS = { none: '미통화', done: '통화완료', miss: '부재중' };
   var WD = ['일', '월', '화', '수', '목', '금', '토'];
-  var KEY = 'crm_customers_v1', KEY_BK = 'crm_last_backup', KEY_VIEW = 'crm_view', KEY_RP = 'crm_report_seen';
-  var bannerEl = $('#banner'), bnText = $('#bnText'), reportEl = $('#report'), rpBody = $('#rpBody');
+  var KEY = 'crm_customers_v1', KEY_BK = 'crm_last_backup', KEY_VIEW = 'crm_view';
+  var rpMake = $('#rpMake'), reportEl = $('#report'), rpBody = $('#rpBody');
   var reportDate = null;
 
   /* 저장 구조 (KEY 하나에 id → 기록):
@@ -826,11 +820,6 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     var todayBtn = el('button', 'mini-btn', '오늘'); todayBtn.type = 'button'; todayBtn.setAttribute('data-fk', 'today');
     todayBtn.onclick = function () { sel = t; monthKey = t.slice(0, 7); render(); };
     bar.append(prev, title, next, todayBtn);
-    if (sel !== 'late' && days[sel]) {
-      var rb = el('button', 'mini-btn', '이 날 리포트'); rb.type = 'button'; rb.setAttribute('data-fk', 'report');
-      rb.onclick = function () { openReport(sel); };
-      bar.append(rb);
-    }
     if (lateN) {
       var lb = el('button', 'mini-btn late-btn', '기한 지남 ' + lateN + '명'); lb.type = 'button'; lb.setAttribute('data-fk', 'late');
       lb.setAttribute('aria-pressed', String(sel === 'late'));
@@ -935,6 +924,8 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     addBtn.textContent = view === 'date' ? '+ 상담 추가' : '+ 고객 추가';
     addBtn.hidden = inDt || inRp;
     qEl.hidden = inDt || inRp;
+    rpMake.hidden = inDt || inRp;
+    rpMake.textContent = (view === 'date' && sel !== 'late' && sel !== today() ? md(sel) + ' ' : '오늘 ') + '리포트 만들기';
     var t = today(), tm = tomorrow();
     var q = query.trim().toLowerCase();
     var digits = q.replace(/\D/g, '');
@@ -958,7 +949,6 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     detailEl.hidden = !inDt;
     reportEl.hidden = !inRp;
     listEl.hidden = inDt || inRp;
-    renderBanner(ix, t, inDt || inRp);
     if (inRp) {
       calEl.hidden = true;
       stateEl.hidden = true;
@@ -1058,28 +1048,8 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
     var p = k.split('-');
     return md(k) + ' (' + WD[new Date(+p[0], +p[1] - 1, +p[2]).getDay()] + ')';
   }
-  /* 리포트를 알려줄 날짜: 오늘 일정이 모두 끝났으면(미통화 없음) 오늘, 아니면 최근 7일 안의 지난 상담일. 이미 본(닫은) 날짜는 빼고 */
-  function reportCandidate(ix, t) {
-    var seen = lsGet(KEY_RP) || '';
-    var byD = {};
-    ix.vis.forEach(function (v) { if (v.date) (byD[v.date] = byD[v.date] || []).push(v); });
-    var tv = byD[t];
-    if (tv && seen < t && tv.every(function (v) { return v.status !== 'none'; })) return { date: t, today: true };
-    var lim = ymd(new Date(Date.now() - 7 * 864e5));
-    var past = Object.keys(byD).filter(function (k) { return k < t && k >= lim && k > seen; }).sort();
-    return past.length ? { date: past[past.length - 1], today: false } : null;
-  }
-  function renderBanner(ix, t, off) {
-    var c = off ? null : reportCandidate(ix, t);
-    bannerEl.hidden = !c;
-    if (!c) return;
-    bannerEl.dataset.date = c.date;
-    bnText.textContent = c.today ? '오늘 상담 일정을 모두 마쳤습니다. 오늘 리포트를 확인하세요.' : dlabel(c.date) + ' 상담 리포트가 준비됐습니다.';
-  }
-  function markSeen(date) { if ((lsGet(KEY_RP) || '') < date) lsSet(KEY_RP, date); }
   function openReport(date) {
     flushAll();
-    markSeen(date);
     reportDate = date;
     render();
     window.scrollTo(0, 0);
@@ -1453,8 +1423,8 @@ textarea.f { resize: none; overflow: hidden; min-height: 34px; }
   $('#dtBack').addEventListener('click', closeDetail);
   $('#rpBack').addEventListener('click', closeReport);
   $('#rpPrint').addEventListener('click', function () { window.print(); });
-  $('#bnOpen').addEventListener('click', function () { openReport(bannerEl.dataset.date); });
-  $('#bnClose').addEventListener('click', function () { markSeen(bannerEl.dataset.date); render(); });
+  /* 리포트 만들기: 날짜별 연락에서 고른 날짜, 그 밖에는 오늘 */
+  rpMake.addEventListener('click', function () { openReport(view === 'date' && sel !== 'late' ? sel : today()); });
   $('#dtAdd').addEventListener('click', function () {
     var vid = addVisit(detailId, today());
     pendingFocus = { id: vid, sel: '[data-f="note"]', dt: true };
